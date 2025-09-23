@@ -4184,11 +4184,6 @@ pub struct DriveCreateData {
 	pub _format: i64,
 	#[serde(rename = "1728")]
 	pub uploadedFile: DriveUploadedFile,
-
-	#[serde(default)]
-	pub _errors: Errors,
-	#[serde(default)]
-	pub _finalIvs: HashMap<String, Option<FinalIv>>,
 }
 
 impl Entity for DriveCreateData {
@@ -4205,11 +4200,8 @@ impl Entity for DriveCreateData {
 pub struct DriveCreateReturn {
 	#[serde(rename = "1730")]
 	pub _format: i64,
-
-	#[serde(default)]
-	pub _errors: Errors,
-	#[serde(default)]
-	pub _finalIvs: HashMap<String, Option<FinalIv>>,
+	#[serde(rename = "1731")]
+	pub createdFile: IdTupleGenerated,
 }
 
 impl Entity for DriveCreateReturn {
@@ -4224,22 +4216,17 @@ impl Entity for DriveCreateReturn {
 #[derive(uniffi::Record, Clone, Serialize, Deserialize)]
 #[cfg_attr(any(test, feature = "testing"), derive(PartialEq, Debug))]
 pub struct DriveGetIn {
-	#[serde(rename = "1732")]
-	pub _format: i64,
 	#[serde(rename = "1733")]
+	pub _format: i64,
+	#[serde(rename = "1734")]
 	pub nodeId: Option<GeneratedId>,
-
-	#[serde(default)]
-	pub _errors: Errors,
-	#[serde(default)]
-	pub _finalIvs: HashMap<String, Option<FinalIv>>,
 }
 
 impl Entity for DriveGetIn {
 	fn type_ref() -> TypeRef {
 		TypeRef {
 			app: AppName::Tutanota,
-			type_id: TypeId::from(1731),
+			type_id: TypeId::from(1732),
 		}
 	}
 }
@@ -4247,22 +4234,17 @@ impl Entity for DriveGetIn {
 #[derive(uniffi::Record, Clone, Serialize, Deserialize)]
 #[cfg_attr(any(test, feature = "testing"), derive(PartialEq, Debug))]
 pub struct DriveGetOut {
-	#[serde(rename = "1735")]
-	pub _format: i64,
 	#[serde(rename = "1736")]
+	pub _format: i64,
+	#[serde(rename = "1737")]
 	pub subFilesIds: Vec<IdTupleGenerated>,
-
-	#[serde(default)]
-	pub _errors: Errors,
-	#[serde(default)]
-	pub _finalIvs: HashMap<String, Option<FinalIv>>,
 }
 
 impl Entity for DriveGetOut {
 	fn type_ref() -> TypeRef {
 		TypeRef {
 			app: AppName::Tutanota,
-			type_id: TypeId::from(1734),
+			type_id: TypeId::from(1735),
 		}
 	}
 }

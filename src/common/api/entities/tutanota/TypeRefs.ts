@@ -2635,7 +2635,6 @@ export function createDriveCreateData(values: StrippedEntity<DriveCreateData>): 
 
 export type DriveCreateData = {
 	_type: TypeRef<DriveCreateData>;
-	_errors: Object;
 	_original?: DriveCreateData
 
 	_format: NumberString;
@@ -2650,12 +2649,13 @@ export function createDriveCreateReturn(values: StrippedEntity<DriveCreateReturn
 
 export type DriveCreateReturn = {
 	_type: TypeRef<DriveCreateReturn>;
-	_errors: Object;
 	_original?: DriveCreateReturn
 
 	_format: NumberString;
+
+	createdFile: IdTuple;
 }
-export const DriveGetInTypeRef: TypeRef<DriveGetIn> = new TypeRef("tutanota", 1731)
+export const DriveGetInTypeRef: TypeRef<DriveGetIn> = new TypeRef("tutanota", 1732)
 
 export function createDriveGetIn(values: StrippedEntity<DriveGetIn>): DriveGetIn {
     return Object.assign(create(typeModels[DriveGetInTypeRef.typeId], DriveGetInTypeRef), values)
@@ -2663,13 +2663,12 @@ export function createDriveGetIn(values: StrippedEntity<DriveGetIn>): DriveGetIn
 
 export type DriveGetIn = {
 	_type: TypeRef<DriveGetIn>;
-	_errors: Object;
 	_original?: DriveGetIn
 
 	_format: NumberString;
 	nodeId: null | Id;
 }
-export const DriveGetOutTypeRef: TypeRef<DriveGetOut> = new TypeRef("tutanota", 1734)
+export const DriveGetOutTypeRef: TypeRef<DriveGetOut> = new TypeRef("tutanota", 1735)
 
 export function createDriveGetOut(values: StrippedEntity<DriveGetOut>): DriveGetOut {
     return Object.assign(create(typeModels[DriveGetOutTypeRef.typeId], DriveGetOutTypeRef), values)
@@ -2677,7 +2676,6 @@ export function createDriveGetOut(values: StrippedEntity<DriveGetOut>): DriveGet
 
 export type DriveGetOut = {
 	_type: TypeRef<DriveGetOut>;
-	_errors: Object;
 	_original?: DriveGetOut
 
 	_format: NumberString;
