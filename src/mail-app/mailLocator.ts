@@ -157,6 +157,7 @@ import { lang } from "../common/misc/LanguageViewModel.js"
 import { SpamClassificationHandler } from "./mail/model/SpamClassificationHandler"
 import { SpamClassifier } from "./workerUtils/spamClassification/SpamClassifier"
 import type { QuickActionsModel } from "../common/misc/quickactions/QuickActionsModel"
+import { DriveFacade } from "../common/api/worker/facades/DriveFacade"
 
 assertMainOrNode()
 
@@ -226,6 +227,7 @@ class MailLocator implements CommonLocator {
 	spamClassifier: SpamClassifier | null = null
 	whitelabelThemeGenerator!: WhitelabelThemeGenerator
 	autosaveFacade!: AutosaveFacade
+	driveFacade!: DriveFacade
 
 	private nativeInterfaces: NativeInterfaces | null = null
 	private mailImporter: MailImporter | null = null
@@ -793,6 +795,7 @@ class MailLocator implements CommonLocator {
 			contactSearchFacade,
 			autosaveFacade,
 			spamClassifier,
+			driveFacade,
 		} = this.worker.getWorkerInterface() as WorkerInterface
 		this.loginFacade = loginFacade
 		this.customerFacade = customerFacade
@@ -816,6 +819,7 @@ class MailLocator implements CommonLocator {
 		this.userManagementFacade = userManagementFacade
 		this.recoverCodeFacade = recoverCodeFacade
 		this.contactFacade = contactFacade
+		this.driveFacade = driveFacade
 		this.serviceExecutor = serviceExecutor
 		this.sqlCipherFacade = sqlCipherFacade
 		this.logins = new LoginController(

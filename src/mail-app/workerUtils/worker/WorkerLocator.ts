@@ -117,6 +117,8 @@ import { PublicIdentityKeyProvider } from "../../../common/api/worker/facades/Pu
 import type { SpamClassifier } from "../spamClassification/SpamClassifier"
 import { IdentityKeyTrustDatabase } from "../../../common/api/worker/facades/IdentityKeyTrustDatabase"
 import { AutosaveFacade } from "../../../common/api/worker/facades/lazy/AutosaveFacade"
+import { IdentityKeyTrustDatabase, KeyVerificationTableDefinitions } from "../../../common/api/worker/facades/IdentityKeyTrustDatabase"
+import { DriveFacade } from "../../../common/api/worker/facades/DriveFacade"
 
 assertWorkerOrNode()
 
@@ -200,6 +202,9 @@ export type WorkerLocatorType = {
 
 	//spam classification
 	spamClassifier: SpamClassifier | null
+
+	// drive
+	driveFacade: lazyAsync<DriveFacade>
 }
 export const locator: WorkerLocatorType = {} as any
 
@@ -838,6 +843,9 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData) 
 		const { MailExportTokenFacade } = await import("../../../common/api/worker/facades/lazy/MailExportTokenFacade.js")
 		const mailExportTokenFacade = new MailExportTokenFacade(locator.serviceExecutor)
 		return new MailExportFacade(mailExportTokenFacade, await locator.bulkMailLoader(), await locator.blob(), locator.crypto, locator.blobAccessToken)
+	})
+	locator.driveFacade = lazyMemoized(async () => {
+		return new DriveFacade(locator.keyLoader, locator.cachingEntityClient, locator.serviceExecutor)
 	})
 }
 

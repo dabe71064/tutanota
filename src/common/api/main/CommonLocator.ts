@@ -76,6 +76,7 @@ import { PublicEncryptionKeyProvider } from "../worker/facades/PublicEncryptionK
 import { IdentityKeyCreator } from "../worker/facades/lazy/IdentityKeyCreator"
 import { PublicIdentityKeyProvider } from "../worker/facades/PublicIdentityKeyProvider"
 import type { WhitelabelThemeGenerator } from "../../gui/WhitelabelThemeGenerator"
+import { DriveFacade } from "../worker/facades/DriveFacade.js"
 
 export interface CommonLocator {
 	worker: WorkerClient
@@ -121,6 +122,7 @@ export interface CommonLocator {
 	random: WorkerRandomizer
 	connectivityModel: WebsocketConnectivityModel
 	identityKeyCreator: IdentityKeyCreator
+	driveFacade: DriveFacade
 
 	mailboxModel: MailboxModel
 
