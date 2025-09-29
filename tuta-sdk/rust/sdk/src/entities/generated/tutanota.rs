@@ -4219,7 +4219,7 @@ pub struct DriveGetIn {
 	#[serde(rename = "1733")]
 	pub _format: i64,
 	#[serde(rename = "1734")]
-	pub nodeId: Option<GeneratedId>,
+	pub folder: Option<IdTupleGenerated>,
 }
 
 impl Entity for DriveGetIn {
@@ -4238,6 +4238,8 @@ pub struct DriveGetOut {
 	pub _format: i64,
 	#[serde(rename = "1737")]
 	pub subFilesIds: Vec<IdTupleGenerated>,
+	#[serde(rename = "1738")]
+	pub parent: IdTupleGenerated,
 }
 
 impl Entity for DriveGetOut {
