@@ -158,6 +158,7 @@ import { SpamClassificationHandler } from "./mail/model/SpamClassificationHandle
 import { SpamClassifier } from "./workerUtils/spamClassification/SpamClassifier"
 import type { QuickActionsModel } from "../common/misc/quickactions/QuickActionsModel"
 import { DriveFacade } from "../common/api/worker/facades/DriveFacade"
+import { DriveViewModel } from "../drive-app/drive/view/DriveViewModel"
 
 assertMainOrNode()
 
@@ -1290,6 +1291,16 @@ class MailLocator implements CommonLocator {
 			return new CredentialsProvider(new WebCredentialsFacade(deviceConfig), null, null)
 		}
 	}
+
+	readonly driveViewModel = lazyMemoized(async () => {
+		const { DriveViewModel } = await import("../drive-app/drive/view/DriveViewModel.js")
+		const router = new ScopedRouter(this.throttledRouter(), "/drive")
+
+		const model = new DriveViewModel(this.entityClient, this.driveFacade, router)
+		await model.initialize()
+
+		return model
+	})
 }
 
 export type IMailLocator = Readonly<MailLocator>

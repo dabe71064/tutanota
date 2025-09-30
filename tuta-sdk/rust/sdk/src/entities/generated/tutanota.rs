@@ -4183,6 +4183,8 @@ pub struct DriveCreateData {
 	#[serde(rename = "1727")]
 	pub _format: i64,
 	#[serde(rename = "1728")]
+	pub parent: Option<IdTupleGenerated>,
+	#[serde(rename = "1729")]
 	pub uploadedFile: DriveUploadedFile,
 }
 
@@ -4198,9 +4200,9 @@ impl Entity for DriveCreateData {
 #[derive(uniffi::Record, Clone, Serialize, Deserialize)]
 #[cfg_attr(any(test, feature = "testing"), derive(PartialEq, Debug))]
 pub struct DriveCreateReturn {
-	#[serde(rename = "1730")]
-	pub _format: i64,
 	#[serde(rename = "1731")]
+	pub _format: i64,
+	#[serde(rename = "1732")]
 	pub createdFile: IdTupleGenerated,
 }
 
@@ -4208,7 +4210,7 @@ impl Entity for DriveCreateReturn {
 	fn type_ref() -> TypeRef {
 		TypeRef {
 			app: AppName::Tutanota,
-			type_id: TypeId::from(1729),
+			type_id: TypeId::from(1730),
 		}
 	}
 }
@@ -4216,9 +4218,9 @@ impl Entity for DriveCreateReturn {
 #[derive(uniffi::Record, Clone, Serialize, Deserialize)]
 #[cfg_attr(any(test, feature = "testing"), derive(PartialEq, Debug))]
 pub struct DriveGetIn {
-	#[serde(rename = "1733")]
-	pub _format: i64,
 	#[serde(rename = "1734")]
+	pub _format: i64,
+	#[serde(rename = "1735")]
 	pub folder: Option<IdTupleGenerated>,
 }
 
@@ -4226,7 +4228,7 @@ impl Entity for DriveGetIn {
 	fn type_ref() -> TypeRef {
 		TypeRef {
 			app: AppName::Tutanota,
-			type_id: TypeId::from(1732),
+			type_id: TypeId::from(1733),
 		}
 	}
 }
@@ -4234,11 +4236,11 @@ impl Entity for DriveGetIn {
 #[derive(uniffi::Record, Clone, Serialize, Deserialize)]
 #[cfg_attr(any(test, feature = "testing"), derive(PartialEq, Debug))]
 pub struct DriveGetOut {
-	#[serde(rename = "1736")]
-	pub _format: i64,
 	#[serde(rename = "1737")]
-	pub subFilesIds: Vec<IdTupleGenerated>,
+	pub _format: i64,
 	#[serde(rename = "1738")]
+	pub subFilesIds: Vec<IdTupleGenerated>,
+	#[serde(rename = "1739")]
 	pub parent: IdTupleGenerated,
 }
 
@@ -4246,7 +4248,7 @@ impl Entity for DriveGetOut {
 	fn type_ref() -> TypeRef {
 		TypeRef {
 			app: AppName::Tutanota,
-			type_id: TypeId::from(1735),
+			type_id: TypeId::from(1736),
 		}
 	}
 }
