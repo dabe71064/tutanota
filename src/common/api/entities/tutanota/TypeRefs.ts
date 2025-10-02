@@ -1142,6 +1142,7 @@ export type CalendarEvent = {
 	invitedConfidentially: null | boolean;
 	recurrenceId: null | Date;
 	_ownerKeyVersion: null | NumberString;
+	sender: null | string;
 
 	repeatRule: null | CalendarRepeatRule;
 	alarmInfos: IdTuple[];
@@ -1169,6 +1170,7 @@ export type CalendarGroupRoot = {
 	shortEvents: Id;
 	longEvents: Id;
 	index: null | CalendarEventIndexRef;
+	pendingEvents: Id;
 }
 export const UserAreaGroupDataTypeRef: TypeRef<UserAreaGroupData> = new TypeRef("tutanota", 956)
 
@@ -1247,6 +1249,7 @@ export type UserSettingsGroupRoot = {
 	birthdayCalendarColor: null | string;
 
 	groupSettings: GroupSettings[];
+	defaultCalendar: null | Id;
 }
 export const CalendarDeleteDataTypeRef: TypeRef<CalendarDeleteData> = new TypeRef("tutanota", 982)
 
