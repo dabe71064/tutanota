@@ -151,6 +151,7 @@ function exportCalendarEvents(
 		parent: null,
 		cid: null,
 		blobs: [],
+		metadata: null,
 	})
 	return locator.fileController.saveDataFile(convertToDataFile(tmpFile, data))
 }
