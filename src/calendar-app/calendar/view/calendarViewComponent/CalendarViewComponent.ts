@@ -104,6 +104,7 @@ export class CalendarViewComponent implements ClassComponent<CalendarViewCompone
 						".content-bg.border-radius-top-right-big",
 						{ style: { gridArea: "calendarGrid" } },
 						m(PageView, {
+							classes: "height-100p",
 							previousPage: {
 								key: attrs.bodyComponentAttrs.previous.key,
 								nodes: this.renderEventGrid(attrs.bodyComponentAttrs.previous.dates, attrs.bodyComponentAttrs.previous.events.short),
@@ -154,6 +155,7 @@ export class CalendarViewComponent implements ClassComponent<CalendarViewCompone
 			dates,
 			conflictRenderPolicy: EventConflictRenderPolicy.PARALLEL,
 			events,
+			timeIndicator: Time.fromDate(new Date()),
 		} satisfies TimeViewAttributes)
 	}
 }

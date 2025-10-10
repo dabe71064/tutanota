@@ -1,257 +1,630 @@
-import m, { ChildArray, Children, Component, Vnode, VnodeDOM } from "mithril"
-import type { CalendarEvent } from "../../api/entities/tutanota/TypeRefs.js"
-import { Time } from "../date/Time"
-import { deepMemoized, downcast, getStartOfNextDay } from "@tutao/tutanota-utils"
-import { px } from "../../gui/size.js"
-import { Icon, IconSize } from "../../gui/base/Icon.js"
-import { Icons } from "../../gui/base/icons/Icons.js"
-import { theme } from "../../gui/theme.js"
-import { colorForBg } from "../../gui/base/GuiUtils.js"
-import { getTimeZone } from "../date/CalendarUtils"
-import { EventRenderWrapper } from "../../../calendar-app/calendar/view/CalendarViewModel.js"
-import { DateTime } from "../../../../libs/luxon.js"
-import { TimeColumn } from "./TimeColumn"
+import m, {ChildArray, Children, Component, Vnode, VnodeDOM} from "mithril"
+import {Time} from "../date/Time"
+import {deepMemoized, getStartOfDay, getStartOfNextDay} from "@tutao/tutanota-utils"
+import {px} from "../../gui/size.js"
+import {Icon, IconSize} from "../../gui/base/Icon.js"
+import {Icons} from "../../gui/base/icons/Icons.js"
+import {theme} from "../../gui/theme.js"
+import {colorForBg} from "../../gui/base/GuiUtils.js"
+import {getTimeZone} from "../date/CalendarUtils"
+import {EventRenderWrapper} from "../../../calendar-app/calendar/view/CalendarViewModel.js"
+import {TimeColumn} from "./TimeColumn"
+import {elementIdPart} from "../../api/common/utils/EntityUtils"
+import {CalendarEvent} from "../../api/entities/tutanota/TypeRefs"
+import {DateTime} from "luxon"
 
 export interface TimeViewEventWrapper {
-	event: EventRenderWrapper
-	conflictsWithMainEvent: boolean
-	/**
-	 * Color applied to the event bubble background
-	 */
-	color: string
-	/**
-	 * Applies special style, color border and shows success or warning icon before event title
-	 */
-	featured: boolean
+    event: EventRenderWrapper
+    conflictsWithMainEvent: boolean
+    color: string
+    featured: boolean
 }
 
-export const TIME_SCALE_BASE_VALUE = 60 // 60 minutes
-/**
- * {@link TIME_SCALE_BASE_VALUE} / {@link TimeScale} = Time interval applied to the agenda time column
- * @example
- * const timeScale1: TimeScale = 1
- * const intervalOf60Minutes = TIME_SCALE_BASE_VALUE / timeScale1
- *
- * const timeScale2: TimeScale = 2
- * const intervalOf30Minutes = TIME_SCALE_BASE_VALUE / timeScale2
- *
- * const timeScale4: TimeScale = 4
- * const intervalOf15Minutes = TIME_SCALE_BASE_VALUE / timeScale4
- * */
-export type TimeScale = 1 | 2 | 4 // FIXME update docs
-/**
- * Tuple of {@link TimeScale} and timeScaleInMinutes
- * @example
- * const scale = 4
- * const timeScaleInMinutes = TIME_SCALE_BASE_VALUE / scale
- * const myTuple: TimeScaleTuple = [scale, timeScaleInMinutes]
- */
+export const TIME_SCALE_BASE_VALUE = 60
+export type TimeScale = 1 | 2 | 4
 export type TimeScaleTuple = [TimeScale, number]
 export type TimeRange = {
-	start: Time
-	end: Time
+    start: Time
+    end: Time
 }
 
 export enum EventConflictRenderPolicy {
-	OVERLAP,
-	PARALLEL,
+    OVERLAP,
+    PARALLEL,
 }
 
 export interface TimeViewAttributes {
-	/**
-	 * Days to render events
-	 */
-	dates: Array<Date>
-	events: Array<TimeViewEventWrapper>
-	/**
-	 * {@link TimeScale} applied to this TimeView
-	 */
-	timeScale: TimeScale
-	/**
-	 * {@link TimeRange} used to generate the Time column and the number of time intervals/slots to position the events
-	 *
-	 * 0 <= start < end < 24:00
-	 *
-	 * End time is inclusive and is considered the beginning of the last interval
-	 */
-	timeRange: TimeRange
-	conflictRenderPolicy: EventConflictRenderPolicy
-	timeIndicator?: Time
-	hasAnyConflict?: boolean
+    dates: Array<Date>
+    events: Array<TimeViewEventWrapper>
+    timeScale: TimeScale
+    timeRange: TimeRange
+    conflictRenderPolicy: EventConflictRenderPolicy
+    timeIndicator?: Time
+    hasAnyConflict?: boolean
 }
 
+type GridEventData = { start: number; end: number; gridColumnEnd: number; gridColumnStart: number }
+
+interface GridData {
+    maxColumnCount: number
+    events: Map<Id, GridEventData>
+}
+
+interface ColumnData {
+    lastEventEndingRow: number
+    events: Map<Id, EventRowData>
+}
+
+interface EventRowData {
+    rowStart: number
+    rowEnd: number
+}
+
+interface BlockingInfo {
+    canExpand: boolean
+    blockingEvents: Map<Id, boolean>
+}
+
+const BASE_EVENT_BUBBLE_SPAN_SIZE = 1
+
 export class TimeView implements Component<TimeViewAttributes> {
-	private timeRowHeight?: number
+    private timeRowHeight?: number
+    private parentHeight?: number
 
-	/*
-	 * Must filter the array to get events using the same logic from conflict detection
-	 * But instead of event start and end we use range start end
-	 */
-	view({ attrs }: Vnode<TimeViewAttributes>) {
-		const { timeScale, timeRange, events, conflictRenderPolicy, dates, timeIndicator, hasAnyConflict } = attrs
-		const timeColumnIntervals = TimeColumn.createTimeColumnIntervals(attrs.timeScale, attrs.timeRange)
-		const subRowCount = 12 * timeColumnIntervals.length
-		const subRowAsMinutes = TIME_SCALE_BASE_VALUE / timeScale / 12
+    private blockingGroupsCache: Map<Id, Array<Map<Id, boolean>>> = new Map()
+    private expandabilityCache: Map<Id, BlockingInfo> = new Map()
+    private eventIdToOriginalColumnArrayIndex: Map<Id, number> = new Map()
 
-		return m(
-			".grid.overflow-hidden.height-100p",
-			{
-				style: {
-					"overflow-x": "hidden",
-					"grid-template-columns": `repeat(${dates.length}, 1fr)`,
-				},
-				oninit: (vnode: VnodeDOM) => {
-					if (this.timeRowHeight == null) {
-						window.requestAnimationFrame(() => {
-							this.timeRowHeight = Number.parseFloat(window.getComputedStyle(vnode.dom).height.replaceAll("px", "")) / subRowCount
-							m.redraw()
-						})
-					}
-				},
-			},
-			dates.map((date) => {
-				return m(
-					".grid.plr-unit.gap.z1.grid-auto-columns.rel",
-					{
-						oncreate(vnode): any {
-							;(vnode.dom as HTMLElement).style.gridTemplateRows = `repeat(${subRowCount}, 1fr)`
-						},
-					},
-					[
-						this.buildTimeIndicator(timeRange, subRowAsMinutes, timeIndicator),
-						this.buildEventsColumn(events, timeRange, subRowAsMinutes, conflictRenderPolicy, subRowCount, timeScale, date, hasAnyConflict),
-					],
-				)
-			}),
-		)
-	}
+    view({attrs}: Vnode<TimeViewAttributes>) {
+        const {timeScale, timeRange, events, conflictRenderPolicy, dates, timeIndicator, hasAnyConflict} = attrs
+        const timeColumnIntervals = TimeColumn.createTimeColumnIntervals(attrs.timeScale, attrs.timeRange)
+        const subRowCount = 12 * timeColumnIntervals.length
+        const subRowAsMinutes = TIME_SCALE_BASE_VALUE / timeScale / 12
 
-	private buildTimeIndicator(timeRange: TimeRange, subRowAsMinutes: number, time?: Time): Children {
-		if (!time) {
-			return null
-		}
+        return m(
+            ".grid.overflow-hidden.height-100p",
+            {
+                style: {
+                    "overflow-x": "hidden",
+                    "grid-template-columns": `repeat(${dates.length}, 1fr)`,
+                },
+                oninit: (vnode: VnodeDOM) => {
+                    if (this.timeRowHeight == null) {
+                        window.requestAnimationFrame(() => {
+                            const domHeight = Number.parseFloat(window.getComputedStyle(vnode.dom).height.replace("px", ""))
+                            this.timeRowHeight = domHeight / subRowCount
+                            this.parentHeight = domHeight
+                            m.redraw()
+                        })
+                    }
+                },
+            },
+            [
+                this.buildTimeIndicator(timeRange, subRowAsMinutes, timeIndicator),
+                dates.map((date) => {
+                    const startOfTomorrow = getStartOfNextDay(date)
+                    const startOfDay = getStartOfDay(date)
+                    const eventsForThisDate = events.filter(
+                        (event) =>
+                            event.event.event.startTime.getTime() < startOfTomorrow.getTime() && event.event.event.endTime.getTime() > startOfDay.getTime(),
+                    )
 
-		const startTimeSpan = timeRange.start.diff(time)
-		const start = Math.floor(startTimeSpan / subRowAsMinutes)
+                    return m(
+                        ".grid.plr-unit.gap.z1.grid-auto-columns.rel.border-right",
+                        {
+                            style: {
+                                height: this.parentHeight ? px(this.parentHeight) : undefined,
+                            },
+                            oncreate(vnode): any {
+                                ;(vnode.dom as HTMLElement).style.gridTemplateRows = `repeat(${subRowCount}, 1fr)`
+                            },
+                        },
+                        [this.renderEventsAtDate(eventsForThisDate, timeRange, subRowAsMinutes, subRowCount, timeScale, date, hasAnyConflict)],
+                    )
+                }),
+            ],
+        )
+    }
 
-		return m(".time-indicator", {
-			style: {
-				top: px((this.timeRowHeight ?? 0) * start),
-				display: this.timeRowHeight == null ? "none" : "initial",
-			},
-		})
-	}
+    private buildTimeIndicator(timeRange: TimeRange, subRowAsMinutes: number, time?: Time): Children {
+        if (!time) {
+            return null
+        }
 
-	private buildEventsColumn = deepMemoized(
-		(
-			agendaEntries: Array<TimeViewEventWrapper>,
-			timeRange: TimeRange,
-			subRowAsMinutes: number,
-			conflictRenderPolicy: EventConflictRenderPolicy,
-			subRowCount: number,
-			timeScale: TimeScale,
-			baseDate: Date,
-			hasAnyConflict: boolean = false,
-		): Children => {
-			const interval = TIME_SCALE_BASE_VALUE / timeScale
-			const timeRangeAsDate = {
-				start: timeRange.start.toDate(baseDate),
-				/**
-				 * We sum one more interval because it is inclusive
-				 * @see TimeViewAttributes.timeRange
-				 */
-				end: timeRange.end.toDateTime(baseDate, getTimeZone()).plus({ minute: interval }).toJSDate(),
-			}
-			return agendaEntries.flatMap((event) => {
-				const passesThroughToday =
-					event.event.event.startTime.getTime() < timeRangeAsDate.start.getTime() &&
-					event.event.event.endTime.getTime() > timeRangeAsDate.end.getTime()
-				const startsToday =
-					event.event.event.startTime.getTime() >= timeRangeAsDate.start.getTime() &&
-					event.event.event.startTime.getTime() <= timeRangeAsDate.end.getTime()
-				const endsToday =
-					event.event.event.endTime.getTime() >= timeRangeAsDate.start.getTime() &&
-					event.event.event.endTime.getTime() <= timeRangeAsDate.end.getTime()
+        const startTimeSpan = timeRange.start.diff(time)
+        const start = Math.floor(startTimeSpan / subRowAsMinutes)
 
-				if (!(passesThroughToday || startsToday || endsToday)) {
-					return []
-				}
+        return m(".time-indicator", {
+            style: {
+                top: px((this.timeRowHeight ?? 0) * start),
+                display: this.timeRowHeight == null ? "none" : "initial",
+            },
+        })
+    }
 
-				const { start, end } = this.getRowBounds(event.event.event, timeRange, subRowAsMinutes, subRowCount, timeScale, baseDate)
+    private renderEventsAtDate = deepMemoized(
+        (
+            eventsForThisDate: Array<TimeViewEventWrapper>,
+            timeRange: TimeRange,
+            subRowAsMinutes: number,
+            subRowCount: number,
+            timeScale: TimeScale,
+            baseDate: Date,
+            hasAnyConflict: boolean = false,
+        ): Children => {
+            const interval = TIME_SCALE_BASE_VALUE / timeScale
+            const timeRangeAsDate = {
+                start: timeRange.start.toDate(baseDate),
+                end: timeRange.end.toDateTime(baseDate, getTimeZone()).plus({minute: interval}).toJSDate(),
+            }
 
-				return [
-					m(
-						// EventBubble
-						".border-radius.text-ellipsis-multi-line.p-xsm.on-success-container-color.small",
-						{
-							style: {
-								"min-height": px(0),
-								"min-width": px(0),
-								"grid-column": conflictRenderPolicy === EventConflictRenderPolicy.OVERLAP ? 1 : undefined,
-								background: event.color,
-								color: !event.featured ? colorForBg(event.color) : undefined,
-								"grid-row": `${start} / ${end}`,
-								"border-top-left-radius": event.event.event.startTime < timeRangeAsDate.start ? "0" : undefined,
-								"border-top-right-radius": event.event.event.startTime < timeRangeAsDate.start ? "0" : undefined,
-								"border-bottom-left-radius": event.event.event.endTime > timeRangeAsDate.end ? "0" : undefined,
-								"border-bottom-right-radius": event.event.event.endTime > timeRangeAsDate.end ? "0" : undefined,
-								border: event.featured ? `1.5px dashed ${hasAnyConflict ? theme.on_warning_container : theme.on_success_container}` : "none",
-								"border-top": event.event.event.startTime < timeRangeAsDate.start ? "none" : undefined,
-								"border-bottom": event.event.event.endTime > timeRangeAsDate.end ? "none" : undefined,
-								"-webkit-line-clamp": 2,
-							},
-						},
-						event.featured
-							? m(".flex.items-start", [
-									m(Icon, {
-										icon: hasAnyConflict ? Icons.AlertCircle : Icons.Checkmark,
-										container: "div",
-										class: "mr-xxs",
-										size: IconSize.Normal,
-										style: {
-											fill: hasAnyConflict ? theme.on_warning_container : theme.on_success_container,
-										},
-									}),
-									m(
-										".break-word.b.text-ellipsis-multi-line.lh",
-										{
-											style: {
-												"-webkit-line-clamp": 2,
-												color: hasAnyConflict ? theme.on_warning_container : theme.on_success_container,
-											},
-										},
-										event.event.event.summary,
-									),
-								])
-							: event.event.event.summary, // FIXME for god sake, we need to get rid of those event.event.event
-					),
-				]
-			}) as ChildArray
-		},
-	)
+            const orderedEvents = eventsForThisDate.toSorted((eventWrapperA, eventWrapperB) => {
+                const startTimeComparison = eventWrapperA.event.event.startTime.getTime() - eventWrapperB.event.event.startTime.getTime()
+                if (startTimeComparison === 0) {
+                    return eventWrapperB.event.event.endTime.getTime() - eventWrapperA.event.event.endTime.getTime()
+                }
 
-	private getRowBounds(event: CalendarEvent, timeRange: TimeRange, subRowAsMinutes: number, subRowCount: number, timeScale: TimeScale, baseDate: Date) {
-		const interval = TIME_SCALE_BASE_VALUE / timeScale
-		const diffFromRangeStartToEventStart = timeRange.start.diff(Time.fromDate(event.startTime))
+                return startTimeComparison
+            })
 
-		const eventStartsBeforeRange = event.startTime < baseDate || Time.fromDate(event.startTime).isBefore(timeRange.start)
-		const start = eventStartsBeforeRange ? 1 : Math.floor(diffFromRangeStartToEventStart / subRowAsMinutes) + 1
+            // Clear caches for fresh calculation
+            this.blockingGroupsCache.clear()
+            this.expandabilityCache.clear()
 
-		const dateParts = {
-			year: baseDate.getFullYear(),
-			month: baseDate.getMonth() + 1,
-			day: baseDate.getDate(),
-			hour: timeRange.end.hour,
-			minute: timeRange.end.minute,
-		}
+            const gridData = this.layoutEvents(orderedEvents, timeRange, subRowAsMinutes, subRowCount, timeScale, baseDate)
 
-		// FIXME remove downcast
-		const diff = DateTime.fromJSDate(event.endTime).diff(DateTime.fromObject(downcast(dateParts)).plus({ minutes: interval }), "minutes").minutes
+            return orderedEvents.flatMap((event) => {
+                const passesThroughToday =
+                    event.event.event.startTime.getTime() < timeRangeAsDate.start.getTime() &&
+                    event.event.event.endTime.getTime() > timeRangeAsDate.end.getTime()
+                const startsToday =
+                    event.event.event.startTime.getTime() >= timeRangeAsDate.start.getTime() &&
+                    event.event.event.startTime.getTime() <= timeRangeAsDate.end.getTime()
+                const endsToday =
+                    event.event.event.endTime.getTime() >= timeRangeAsDate.start.getTime() &&
+                    event.event.event.endTime.getTime() <= timeRangeAsDate.end.getTime()
 
-		const diffFromRangeStartToEventEnd = timeRange.start.diff(Time.fromDate(event.endTime))
-		const eventEndsAfterRange = event.endTime > getStartOfNextDay(baseDate) || diff > 0
-		const end = eventEndsAfterRange ? -1 : Math.floor(diffFromRangeStartToEventEnd / subRowAsMinutes) + 1
+                if (!(passesThroughToday || startsToday || endsToday)) {
+                    return []
+                }
 
-		return { start, end }
-	}
+                const evData = gridData.get(elementIdPart(event.event.event._id))
+                if (!evData) {
+                    return []
+                }
+                const {start, end, gridColumnEnd: spanSize, gridColumnStart}: GridEventData = evData
+
+                return [
+                    m(
+                        ".border-radius.text-ellipsis-multi-line.p-xsm.on-success-container-color.small",
+                        {
+                            style: {
+                                "min-height": px(0),
+                                "min-width": px(0),
+                                "grid-column": `${gridColumnStart} / span ${spanSize}`,
+                                background: event.color,
+                                color: !event.featured ? colorForBg(event.color) : undefined,
+                                "grid-row": `${start} / ${end}`,
+                                "border-top-left-radius": event.event.event.startTime < timeRangeAsDate.start ? "0" : undefined,
+                                "border-top-right-radius": event.event.event.startTime < timeRangeAsDate.start ? "0" : undefined,
+                                "border-bottom-left-radius": event.event.event.endTime > timeRangeAsDate.end ? "0" : undefined,
+                                "border-bottom-right-radius": event.event.event.endTime > timeRangeAsDate.end ? "0" : undefined,
+                                border: event.featured ? `1.5px dashed ${hasAnyConflict ? theme.on_warning_container : theme.on_success_container}` : "none",
+                                "border-top": event.event.event.startTime < timeRangeAsDate.start ? "none" : undefined,
+                                "border-bottom": event.event.event.endTime > timeRangeAsDate.end ? "none" : undefined,
+                                "-webkit-line-clamp": 2,
+                            } satisfies Partial<CSSStyleDeclaration> & Record<string, any>,
+                        },
+                        event.featured
+                            ? m(".flex.items-start", [
+                                m(Icon, {
+                                    icon: hasAnyConflict ? Icons.AlertCircle : Icons.Checkmark,
+                                    container: "div",
+                                    class: "mr-xxs",
+                                    size: IconSize.Normal,
+                                    style: {
+                                        fill: hasAnyConflict ? theme.on_warning_container : theme.on_success_container,
+                                    },
+                                }),
+                                m(
+                                    ".break-word.b.text-ellipsis-multi-line.lh",
+                                    {
+                                        style: {
+                                            "-webkit-line-clamp": 2,
+                                            color: hasAnyConflict ? theme.on_warning_container : theme.on_success_container,
+                                        },
+                                    },
+                                    event.event.event.summary,
+                                ),
+                            ])
+                            : m("span.selectable", `${event.event.event.summary} ${event.event.event._id.join("/")}`),
+                    ),
+                ]
+            }) as ChildArray
+        },
+    )
+
+    private layoutEvents(
+        events: Array<TimeViewEventWrapper>,
+        timeRange: TimeRange,
+        subRowAsMinutes: number,
+        subRowCount: number,
+        timeScale: TimeScale,
+        baseDate: Date,
+    ) {
+        // Convert to row-based events
+        const eventsMap: Map<Id, EventRowData> = new Map(
+            events.map((e) => {
+                const evt = e.event.event
+                return [elementIdPart(evt._id), this.getRowBounds(evt, timeRange, subRowAsMinutes, subRowCount, timeScale, baseDate)]
+            }),
+        )
+
+        // Assign events to columns
+        const columns: Array<ColumnData> = []
+
+        for (const [eventId, eventRowData] of eventsMap.entries()) {
+            let currentColumnIndex = columns.findIndex((col) => col.lastEventEndingRow <= eventRowData.rowStart)
+
+            if (currentColumnIndex === -1) {
+                currentColumnIndex = columns.length
+                columns.push({
+                    lastEventEndingRow: eventRowData.rowEnd,
+                    events: new Map([[eventId, eventRowData]]),
+                })
+            } else {
+                columns[currentColumnIndex].lastEventEndingRow = eventRowData.rowEnd
+                columns[currentColumnIndex].events.set(eventId, eventRowData)
+            }
+        }
+
+        return this.buildGridData(columns)
+    }
+
+    /**
+     * Added caching to avoid recalculating expandability
+     */
+    private buildGridData(allColumns: Array<ColumnData>): GridData["events"] {
+        const gridData = new Map<Id, GridEventData>()
+        const blockerShift = new Map<Id, number>()
+
+        for (const [columnIndex, columnData] of allColumns.entries()) {
+            for (const [eventId, eventRowData] of columnData.events.entries()) {
+                this.eventIdToOriginalColumnArrayIndex.set(eventId, columnIndex)
+                let currentEventCanExpand = false
+
+                // Check cache first before recalculating
+                let cachedExpandability = this.expandabilityCache.get(eventId)
+                if (!cachedExpandability) {
+                    const expandInfo = this.canExpandRight(eventId, eventRowData, columnIndex, allColumns, this.blockingGroupsCache)
+                    this.expandabilityCache.set(eventId, expandInfo)
+                    cachedExpandability = expandInfo
+                }
+
+                currentEventCanExpand = cachedExpandability.canExpand
+
+                const eventShift = blockerShift.get(eventId) ?? 0
+                let size = 0
+
+                if (currentEventCanExpand) {
+                    const maxSize = allColumns.length
+                    const numOfColumnsWithBlockers = this.blockingGroupsCache.get(eventId)?.length ?? 0
+
+                    if (numOfColumnsWithBlockers === 0) {
+                        // Early termination when first conflict found
+                        let firstConflictIndex = -1
+
+                        for (let i = columnIndex + 1; i < allColumns.length; i++) {
+                            const columnData = allColumns[i]
+                            const conflict = this.findFirstOverlapFast(eventRowData, columnData.events)
+
+                            if (conflict) {
+                                firstConflictIndex = i
+                                size = i - columnIndex + (blockerShift.get(conflict) ?? 0) - eventShift
+                                break
+                            }
+                        }
+
+                        if (firstConflictIndex === -1) {
+                            const arrayIndexToGridIndex = 1 + columnIndex
+
+                            size = maxSize - eventShift - arrayIndexToGridIndex + BASE_EVENT_BUBBLE_SPAN_SIZE
+                        }
+                    } else {
+                        // Cache column count calculation
+                        const columnsWithConflict = this.countConflictingColumns(columnIndex, eventRowData, allColumns)
+                        size = Math.max(Math.floor((maxSize - eventShift) / (columnsWithConflict + BASE_EVENT_BUBBLE_SPAN_SIZE)), 1)
+                    }
+
+                    // Bulk update blockers instead of individual iteration
+                    this.updateBlockerShifts(eventId, size, blockerShift)
+                }
+
+                const gridColumnStart = 1 + columnIndex + eventShift
+                const gridColumnEnd =
+                    gridColumnStart + size > allColumns.length + 1 ? Math.max(allColumns.length - gridColumnStart, BASE_EVENT_BUBBLE_SPAN_SIZE) : size
+
+                gridData.set(eventId, {
+                    start: eventRowData.rowStart,
+                    end: eventRowData.rowEnd,
+                    gridColumnStart,
+                    gridColumnEnd,
+                })
+            }
+        }
+
+        this.applyRetroactiveShifts(gridData, allColumns)
+
+        return gridData
+    }
+
+    /**
+     * NEW: Apply retroactive shifts to earlier events when later events have shifted
+     * This ensures events that were blocked by shifted events can now expand properly
+     */
+    private applyRetroactiveShifts(gridData: Map<Id, GridEventData>, allColumns: Array<ColumnData>): void {
+        // Cache conflict info to avoid redundant calculations
+        const conflictCache = new Map<
+            Id,
+            {
+                conflict: { distance: number; id: Id; gridStart: number } | undefined
+                sumOfSizes: number
+            }
+        >()
+
+        for (const [eventId, gridInfo] of gridData.entries()) {
+            const eventIndex = this.eventIdToOriginalColumnArrayIndex.get(eventId)
+            if (eventIndex == null) {
+                continue
+            }
+
+            const expectedGridEnd = gridInfo.gridColumnStart + gridInfo.gridColumnEnd
+
+            // Check cache first to avoid redundant conflict finding
+            let cachedConflictInfo = conflictCache.get(eventId)
+            let conflict: { distance: number; id: Id; gridStart: number } | undefined
+            let sumOfSizes = 0
+
+            if (!cachedConflictInfo) {
+                // Find conflict and accumulate sizes - preserve original loop logic
+                for (let i = eventIndex + 1; i < allColumns.length; i++) {
+                    const columnData = allColumns[i]
+
+                    const overlappingEvents = this.findOverlappingEvents(
+                        {
+                            rowStart: gridInfo.start,
+                            rowEnd: gridInfo.end,
+                        },
+                        columnData.events,
+                    )
+
+                    if (overlappingEvents.size === 0) {
+                        continue
+                    }
+
+                    // Optimization: Accumulate and find closest in single pass
+                    for (const [conflictId] of overlappingEvents.entries()) {
+                        const conflictInfo = gridData.get(conflictId)
+                        if (!conflictInfo) {
+                            continue
+                        }
+
+                        const distance = conflictInfo.gridColumnStart - expectedGridEnd
+                        sumOfSizes += conflictInfo.gridColumnEnd
+
+                        // Find closest conflict (minimum distance)
+                        if (!conflict || distance < conflict.distance) {
+                            conflict = {
+                                distance,
+                                id: conflictId,
+                                gridStart: conflictInfo.gridColumnStart,
+                            }
+                        }
+                    }
+                }
+
+                // Cache the result
+                cachedConflictInfo = {conflict, sumOfSizes}
+                conflictCache.set(eventId, cachedConflictInfo)
+            } else {
+                conflict = cachedConflictInfo.conflict
+                sumOfSizes = cachedConflictInfo.sumOfSizes
+            }
+
+            if (!conflict) {
+                continue
+            }
+
+            let newSize: number | null = null
+
+            // Case 1: Already exceeds grid bounds
+            if (gridInfo.gridColumnStart + gridInfo.gridColumnEnd > allColumns.length) {
+                newSize = Math.max(allColumns.length - gridInfo.gridColumnStart, BASE_EVENT_BUBBLE_SPAN_SIZE)
+            }
+            // Case 2: Can expand (no overlap)
+            else if (expectedGridEnd < conflict.gridStart) {
+                const expandedSize = gridInfo.gridColumnEnd + conflict.distance
+                newSize =
+                    gridInfo.gridColumnStart + expandedSize > allColumns.length
+                        ? Math.max(allColumns.length - gridInfo.gridColumnStart, BASE_EVENT_BUBBLE_SPAN_SIZE)
+                        : expandedSize
+            }
+            // Case 3: Must shrink (overlap detected)
+            else if (expectedGridEnd > conflict.gridStart) {
+                const shrinkSize = conflict.gridStart - 1
+                newSize =
+                    gridInfo.gridColumnStart + shrinkSize + sumOfSizes > allColumns.length
+                        ? Math.max(allColumns.length - gridInfo.gridColumnStart, BASE_EVENT_BUBBLE_SPAN_SIZE)
+                        : shrinkSize
+            }
+
+            // Only update if size changed
+            if (newSize !== null && newSize !== gridInfo.gridColumnEnd) {
+                gridData.set(eventId, {
+                    ...gridInfo,
+                    gridColumnEnd: newSize,
+                })
+            }
+        }
+    }
+
+    /**
+     * Memoized and returns on first overlap found
+     */
+    private findFirstOverlapFast(currentEventRowData: EventRowData, eventsInColumn: Map<Id, EventRowData>): Id | null {
+        for (const [eventId, eventRowData] of eventsInColumn.entries()) {
+            if (eventRowData.rowStart < currentEventRowData.rowEnd && eventRowData.rowEnd > currentEventRowData.rowStart) {
+                return eventId
+            }
+        }
+        return null
+    }
+
+    /**
+     * Extracted to separate method for clarity and reusability
+     */
+    private countConflictingColumns(columnIndex: number, eventRowData: EventRowData, allColumns: Array<ColumnData>): number {
+        let count = 0
+        for (let i = columnIndex + 1; i < allColumns.length; i++) {
+            if (
+                Array.from(allColumns[i].events.values()).some(
+                    (eventData) => eventData.rowStart < eventRowData.rowEnd && eventData.rowEnd > eventRowData.rowStart,
+                )
+            ) {
+                count++
+            }
+        }
+        return count
+    }
+
+    /**
+     * Bulk update instead of individual operations
+     */
+    private updateBlockerShifts(eventId: Id, size: number, blockerShift: Map<Id, number>): void {
+        const blockerGroups = this.blockingGroupsCache.get(eventId)
+        if (!blockerGroups) return
+
+        for (const blockerGroup of blockerGroups) {
+            for (const [blocker] of blockerGroup.entries()) {
+                const blockerShiftInfo = blockerShift.get(blocker) ?? 0
+                blockerShift.set(blocker, blockerShiftInfo + size - 1)
+                blockerGroup.delete(blocker)
+            }
+            this.blockingGroupsCache.delete(eventId)
+        }
+    }
+
+    /**
+     * Used memoization cache instead of blockingGroups parameter
+     * Reduced parameter passing and improved clarity
+     */
+    private canExpandRight(
+        eventId: Id,
+        eventRowData: EventRowData,
+        colIndex: number,
+        allColumns: ColumnData[],
+        blockingGroups: Map<Id, Array<Map<Id, boolean>>>,
+        visited: Set<Id> = new Set(),
+    ): BlockingInfo {
+        const blockingEvents = new Map<Id, boolean>()
+        const nextColIndex = colIndex + 1
+
+        if (!blockingGroups.has(eventId)) {
+            blockingGroups.set(eventId, [])
+        }
+
+        if (nextColIndex >= allColumns.length) {
+            return {canExpand: false, blockingEvents}
+        }
+
+        const nextColEvents = allColumns[nextColIndex].events
+        const overlapping = this.findOverlappingEvents(eventRowData, nextColEvents)
+
+        // Process overlapping events
+        for (const [nextEventId, nextEventRowData] of overlapping) {
+            if (visited.has(nextEventId)) {
+                continue
+            }
+
+            visited.add(nextEventId)
+
+            // Check cache first to avoid redundant recursion
+            let nextBlockingInfo = this.expandabilityCache.get(nextEventId)
+            if (!nextBlockingInfo) {
+                nextBlockingInfo = this.canExpandRight(nextEventId, nextEventRowData, nextColIndex, allColumns, blockingGroups, visited)
+                this.expandabilityCache.set(nextEventId, nextBlockingInfo)
+            }
+
+            blockingEvents.set(nextEventId, nextBlockingInfo.canExpand)
+            for (const [id, canExpand] of nextBlockingInfo.blockingEvents) {
+                blockingEvents.set(id, canExpand)
+            }
+
+            if (!nextBlockingInfo.canExpand) {
+                if (blockingEvents.size) {
+                    blockingGroups.get(eventId)?.push(blockingEvents)
+                }
+                return {canExpand: false, blockingEvents}
+            }
+        }
+
+        if (blockingEvents.size) {
+            blockingGroups.get(eventId)?.push(blockingEvents)
+        }
+
+        return {
+            canExpand: Array.from(blockingEvents.entries()).every(([event, canExpand]) => {
+                if (!canExpand) {
+                    return false
+                }
+                const expandInfo = this.expandabilityCache.get(event)
+                if (expandInfo !== undefined && expandInfo.blockingEvents.size === 0) {
+                    return true
+                }
+                const a = blockingGroups.get(event)
+                if (a === undefined || a.length === 0) return true
+                return Array.from(a.values()).every((group) => Array.from(group.values()).every(Boolean))
+            }),
+            blockingEvents,
+        }
+    }
+
+    private getRowBounds(event: CalendarEvent, timeRange: TimeRange, subRowAsMinutes: number, subRowCount: number, timeScale: TimeScale, baseDate: Date) {
+        const interval = TIME_SCALE_BASE_VALUE / timeScale
+        const diffFromRangeStartToEventStart = timeRange.start.diff(Time.fromDate(event.startTime))
+
+        const eventStartsBeforeRange = event.startTime < baseDate || Time.fromDate(event.startTime).isBefore(timeRange.start)
+        const start = eventStartsBeforeRange ? 1 : Math.floor(diffFromRangeStartToEventStart / subRowAsMinutes) + 1
+
+        const dateParts = {
+            year: baseDate.getFullYear(),
+            month: baseDate.getMonth() + 1,
+            day: baseDate.getDate(),
+            hour: timeRange.end.hour,
+            minute: timeRange.end.minute,
+        }
+
+        const diff = DateTime.fromJSDate(event.endTime).diff(DateTime.fromObject(dateParts).plus({minutes: interval}), "minutes").minutes
+
+        const diffFromRangeStartToEventEnd = timeRange.start.diff(Time.fromDate(event.endTime))
+        const eventEndsAfterRange = event.endTime > getStartOfNextDay(baseDate) || diff > 0
+        const end = eventEndsAfterRange ? -1 : Math.floor(diffFromRangeStartToEventEnd / subRowAsMinutes) + 1
+
+        return {rowStart: start, rowEnd: end}
+    }
+
+    /**
+     * Extracted overlap detection for clarity
+     */
+    private findOverlappingEvents(currentEventRowData: EventRowData, eventsInColumn: Map<Id, EventRowData>): Map<Id, EventRowData> {
+        const result = new Map<Id, EventRowData>()
+
+        for (const [eventId, eventRowData] of eventsInColumn.entries()) {
+            if (eventRowData.rowStart < currentEventRowData.rowEnd && eventRowData.rowEnd > currentEventRowData.rowStart) {
+                result.set(eventId, eventRowData)
+            }
+        }
+
+        return result
+    }
 }
