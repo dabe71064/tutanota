@@ -120,6 +120,7 @@ import { WhitelabelThemeGenerator } from "../common/gui/WhitelabelThemeGenerator
 import type { AutosaveFacade, LocalAutosavedDraftData } from "../common/api/worker/facades/lazy/AutosaveFacade"
 import { lang } from "../common/misc/LanguageViewModel.js"
 import { DriveFacade } from "../common/api/worker/facades/DriveFacade"
+import { UploadProgressListener } from "../common/api/main/UploadProgressListener"
 
 assertMainOrNode()
 
@@ -179,6 +180,7 @@ class CalendarLocator implements CommonLocator {
 	identityKeyCreator!: IdentityKeyCreator
 	whitelabelThemeGenerator!: WhitelabelThemeGenerator
 	driveFacade!: DriveFacade
+	uploadProgressListener!: UploadProgressListener
 
 	private nativeInterfaces: NativeInterfaces | null = null
 	private entropyFacade!: EntropyFacade
