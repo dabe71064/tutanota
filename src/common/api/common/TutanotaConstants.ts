@@ -1426,3 +1426,5 @@ export const DEFAULT_IS_SPAM = false
 export function getSpamConfidence(mail: Mail): number {
 	return Number(mail.clientSpamClassifierResult?.confidence ?? DEFAULT_IS_SPAM_CONFIDENCE)
 }
+
+export const CANCEL_UPLOAD_EVENT = "CANCEL_UPLOAD_EVENT"
