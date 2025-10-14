@@ -40,6 +40,7 @@ import { InstancePipeline } from "../../crypto/InstancePipeline"
 import { AttributeModel } from "../../../common/AttributeModel"
 import { ExposedProgressTracker } from "../../../main/ProgressTracker"
 import { ChunkedUploadInfo } from "../../../common/drive/DriveTypes"
+import { UploadGuid } from "../DriveFacade"
 
 assertWorkerOrNode()
 export const BLOB_SERVICE_REST_PATH = `/rest/${BlobService.app}/${BlobService.name.toLowerCase()}`
@@ -88,18 +89,21 @@ export class BlobFacade {
 		blobData: Uint8Array,
 		ownerGroupId: Id,
 		sessionKey: AesKey,
-		onChunkUploaded?: (info: ChunkedUploadInfo) => Promise<void>,
+		onChunkUploaded?: (info: ChunkedUploadInfo) => void,
+		fileId?: UploadGuid,
 		onCancelListener?: EventTarget,
 	): Promise<BlobReferenceTokenWrapper[]> {
 		const chunks = splitUint8ArrayInChunks(MAX_BLOB_SIZE_BYTES, blobData)
 
 		let uploadIsCanceledByUser = false
-		const doCancelUpload = () => {
-			uploadIsCanceledByUser = true
+		const doCancelUpload = ({ detail }: CustomEvent) => {
+			if (detail === fileId) {
+				uploadIsCanceledByUser = true
+			}
 		}
 
 		// Ensure that only one listener exists at any time.
-		onCancelListener?.removeEventListener(CANCEL_UPLOAD_EVENT, doCancelUpload)
+
 		onCancelListener?.addEventListener(CANCEL_UPLOAD_EVENT, doCancelUpload)
 
 		const doBlobRequest = async () => {
@@ -111,10 +115,11 @@ export class BlobFacade {
 					return []
 				}
 				const blobReferenceTokenWrapper = await this.encryptAndUploadChunk(chunk, blobServerAccessInfo, sessionKey)
-				await onChunkUploaded?.({ fileNameId: "", totalBytes: blobData.length, uploadedBytes: chunk.length })
+				onChunkUploaded?.({ fileId: assertNotNull(fileId), totalBytes: blobData.length, uploadedBytes: chunk.length })
 				receivedTokens.push(blobReferenceTokenWrapper)
 			}
-
+			// careful we need to also remove in case of a failure and inside a catch block or finally block
+			onCancelListener?.removeEventListener(CANCEL_UPLOAD_EVENT, doCancelUpload)
 			return receivedTokens
 		}
 
