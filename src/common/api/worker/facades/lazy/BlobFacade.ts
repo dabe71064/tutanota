@@ -102,8 +102,6 @@ export class BlobFacade {
 			}
 		}
 
-		// Ensure that only one listener exists at any time.
-
 		onCancelListener?.addEventListener(CANCEL_UPLOAD_EVENT, doCancelUpload)
 
 		const doBlobRequest = async () => {
@@ -118,7 +116,7 @@ export class BlobFacade {
 				onChunkUploaded?.({ fileId: assertNotNull(fileId), totalBytes: blobData.length, uploadedBytes: chunk.length })
 				receivedTokens.push(blobReferenceTokenWrapper)
 			}
-			// careful we need to also remove in case of a failure and inside a catch block or finally block
+			// TODO: careful we need to also remove in case of a failure and inside a catch block or finally block
 			onCancelListener?.removeEventListener(CANCEL_UPLOAD_EVENT, doCancelUpload)
 			return receivedTokens
 		}
