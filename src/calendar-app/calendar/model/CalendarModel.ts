@@ -21,7 +21,7 @@ import {
 	BIRTHDAY_CALENDAR_BASE_ID,
 	CalendarMethod,
 	DEFAULT_BIRTHDAY_CALENDAR_COLOR,
-	defaultCalendarColor,
+	DEFAULT_CALENDAR_COLOR,
 	EXTERNAL_CALENDAR_SYNC_INTERVAL,
 	FeatureType,
 	OperationType,
@@ -113,7 +113,7 @@ import { locator } from "../../../common/api/main/CommonLocator.js"
 import {
 	eventHasSameFields,
 	EventImportRejectionReason,
-	EventWrapper,
+	EventAlarmsTuple,
 	parseCalendarStringData,
 	shallowIsSameEvent,
 	sortOutParsedEvents,
@@ -409,7 +409,7 @@ export class CalendarModel {
 		const groupSettings = userSettingsGroupRoot.groupSettings.find((groupSettings) => groupSettings.group === group._id)
 		const isExternal = hasSourceUrl(groupSettings)
 		const calendarId = groupRoot._id
-		const color = groupSettings?.color ?? defaultCalendarColor
+		const color = groupSettings?.color ?? DEFAULT_CALENDAR_COLOR
 		const sharedGroupName = getSharedGroupName(groupInfo, userSettingsGroupRoot, shared)
 		const calendarType = getCalendarType({
 			calendarId: calendarId,
@@ -609,7 +609,7 @@ export class CalendarModel {
 		eventsToUpdate: CalendarEvent[],
 		existingEventList: Array<CalendarEvent>,
 		duplicatesCount: number,
-		eventsForCreation: Array<EventWrapper>,
+		eventsForCreation: Array<EventAlarmsTuple>,
 		currentCalendarGroupRoot: CalendarGroupRoot,
 		wipeCalendar: boolean,
 	) {
