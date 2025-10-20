@@ -212,53 +212,52 @@ export class EventBannerImpl implements ClassComponent<EventBannerImplAttrs> {
 										]),
 										agenda
 											? m(".mb-s", [
-												m(
-													".flex.mt-hpad-small.fit-content",
-													{
-														class: agenda && agenda.conflictCount > 1 ? "nav-button" : undefined,
-														onclick: () =>
-															agenda && agenda.conflictCount > 1
-																? (this.displayConflictingAgenda = !this.displayConflictingAgenda)
-																: null,
-													}, [
-													m(Icon, {
-														icon: hasConflict ? Icons.AlertCircle : Icons.CheckCircleFilled,
-														container: "div",
-														class: "mr-xsm",
-														style: {
-															fill: hasConflict ? theme.warning : theme.success,
-														},
-														size: IconSize.Medium,
-													}),
-													this.renderConflictInfoText(
-														agenda.regularEvents.length, agenda.allDayEvents.length),
-													],
-												),
-												m(
-													"",
-													{
-														style: {
-															"margin-left": px(size.icon_size_large + size.vpad_xsm),
-														},
-													},
-													[
-														m(
-															ExpanderPanel,
-															{
-																expanded: this.displayConflictingAgenda,
-															},
-															m(".selectable", [
-																agenda.regularEvents && agenda.regularEvents.length > 0
-																	? this.renderNormalConflictingEvents(event.startTime, agenda.regularEvents)
+													m(
+														".flex.mt-hpad-small.fit-content",
+														{
+															class: agenda && agenda.conflictCount > 1 ? "nav-button" : undefined,
+															onclick: () =>
+																agenda && agenda.conflictCount > 1
+																	? (this.displayConflictingAgenda = !this.displayConflictingAgenda)
 																	: null,
-																agenda.allDayEvents.length > 0
-																	? this.renderAllDayConflictingEvents(event.startTime,
-														agenda.allDayEvents,
-													): null,
-															]),
-														),
-													],
-												),
+														},
+														[
+															m(Icon, {
+																icon: hasConflict ? Icons.AlertCircle : Icons.CheckCircleFilled,
+																container: "div",
+																class: "mr-xsm",
+																style: {
+																	fill: hasConflict ? theme.warning : theme.success,
+																},
+																size: IconSize.Medium,
+															}),
+															this.renderConflictInfoText(agenda.regularEvents.length, agenda.allDayEvents.length),
+														],
+													),
+													m(
+														"",
+														{
+															style: {
+																"margin-left": px(size.icon_size_large + size.vpad_xsm),
+															},
+														},
+														[
+															m(
+																ExpanderPanel,
+																{
+																	expanded: this.displayConflictingAgenda,
+																},
+																m(".selectable", [
+																	agenda.regularEvents && agenda.regularEvents.length > 0
+																		? this.renderNormalConflictingEvents(event.startTime, agenda.regularEvents)
+																		: null,
+																	agenda.allDayEvents.length > 0
+																		? this.renderAllDayConflictingEvents(event.startTime, agenda.allDayEvents)
+																		: null,
+																]),
+															),
+														],
+													),
 												])
 											: null,
 									],
