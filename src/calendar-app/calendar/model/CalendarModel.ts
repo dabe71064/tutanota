@@ -26,7 +26,7 @@ import {
 	FeatureType,
 	OperationType,
 } from "../../../common/api/common/TutanotaConstants"
-import { EventController } from "../../../common/api/main/EventController"
+import {EventController} from "../../../common/api/main/EventController"
 import {
 	createDateWrapper,
 	createMembershipRemoveData,
@@ -53,16 +53,21 @@ import {
 	UserSettingsGroupRoot,
 	UserSettingsGroupRootTypeRef,
 } from "../../../common/api/entities/tutanota/TypeRefs.js"
-import { isApp, isDesktop } from "../../../common/api/common/Env"
-import type { LoginController } from "../../../common/api/main/LoginController"
-import { LockedError, NotAuthorizedError, NotFoundError, PreconditionFailedError } from "../../../common/api/common/error/RestError"
-import type { ParsedCalendarData, ParsedEvent } from "../../../common/calendar/gui/CalendarImporter.js"
-import { ParserError } from "../../../common/misc/parsing/ParserCombinator"
-import { ProgressTracker } from "../../../common/api/main/ProgressTracker"
-import type { IProgressMonitor } from "../../../common/api/common/utils/ProgressMonitor"
-import { NoopProgressMonitor } from "../../../common/api/common/utils/ProgressMonitor"
-import { EntityClient } from "../../../common/api/common/EntityClient"
-import type { MailboxModel } from "../../../common/mailFunctionality/MailboxModel.js"
+import {isApp, isDesktop} from "../../../common/api/common/Env"
+import type {LoginController} from "../../../common/api/main/LoginController"
+import {
+	LockedError,
+	NotAuthorizedError,
+	NotFoundError,
+	PreconditionFailedError
+} from "../../../common/api/common/error/RestError"
+import type {ParsedCalendarData, ParsedEvent} from "../../../common/calendar/gui/CalendarImporter.js"
+import {ParserError} from "../../../common/misc/parsing/ParserCombinator"
+import {ProgressTracker} from "../../../common/api/main/ProgressTracker"
+import type {IProgressMonitor} from "../../../common/api/common/utils/ProgressMonitor"
+import {NoopProgressMonitor} from "../../../common/api/common/utils/ProgressMonitor"
+import {EntityClient} from "../../../common/api/common/EntityClient"
+import type {MailboxModel} from "../../../common/mailFunctionality/MailboxModel.js"
 import {
 	DELETE_MULTIPLE_LIMIT,
 	elementIdPart,
@@ -72,27 +77,35 @@ import {
 	POST_MULTIPLE_LIMIT,
 	removeTechnicalFields,
 } from "../../../common/api/common/utils/EntityUtils"
-import type { AlarmScheduler } from "../../../common/calendar/date/AlarmScheduler.js"
-import { Notifications, NotificationType } from "../../../common/gui/Notifications"
+import type {AlarmScheduler} from "../../../common/calendar/date/AlarmScheduler.js"
+import {Notifications, NotificationType} from "../../../common/gui/Notifications"
 import m from "mithril"
-import type { CalendarEventInstance, CalendarEventProgenitor, CalendarFacade } from "../../../common/api/worker/facades/lazy/CalendarFacade.js"
+import type {
+	CalendarEventInstance,
+	CalendarEventProgenitor,
+	CalendarFacade
+} from "../../../common/api/worker/facades/lazy/CalendarFacade.js"
 import {
 	AlarmInfoTemplate,
 	CachingMode,
 	CalendarEventAlteredInstance,
 	CalendarEventUidIndexEntry,
 } from "../../../common/api/worker/facades/lazy/CalendarFacade.js"
-import { IServiceExecutor } from "../../../common/api/common/ServiceRequest"
-import { MembershipService } from "../../../common/api/entities/sys/Services"
-import { FileController } from "../../../common/file/FileController"
-import { findAttendeeInAddresses, isBefore, serializeAlarmInterval } from "../../../common/api/common/utils/CommonCalendarUtils.js"
-import { TutanotaError } from "@tutao/tutanota-error"
-import { SessionKeyNotFoundError } from "../../../common/api/common/error/SessionKeyNotFoundError.js"
+import {IServiceExecutor} from "../../../common/api/common/ServiceRequest"
+import {MembershipService} from "../../../common/api/entities/sys/Services"
+import {FileController} from "../../../common/file/FileController"
+import {
+	findAttendeeInAddresses,
+	isBefore,
+	serializeAlarmInterval
+} from "../../../common/api/common/utils/CommonCalendarUtils.js"
+import {TutanotaError} from "@tutao/tutanota-error"
+import {SessionKeyNotFoundError} from "../../../common/api/common/error/SessionKeyNotFoundError.js"
 import Stream from "mithril/stream"
-import { ObservableLazyLoaded } from "../../../common/api/common/utils/ObservableLazyLoaded.js"
-import { UserController } from "../../../common/api/main/UserController.js"
-import { formatDateWithWeekdayAndTime, formatTime } from "../../../common/misc/Formatter.js"
-import { EntityUpdateData, isUpdateFor, isUpdateForTypeRef } from "../../../common/api/common/utils/EntityUpdateUtils.js"
+import {ObservableLazyLoaded} from "../../../common/api/common/utils/ObservableLazyLoaded.js"
+import {UserController} from "../../../common/api/main/UserController.js"
+import {formatDateWithWeekdayAndTime, formatTime} from "../../../common/misc/Formatter.js"
+import {EntityUpdateData, isUpdateFor, isUpdateForTypeRef} from "../../../common/api/common/utils/EntityUpdateUtils.js"
 import {
 	AlarmInterval,
 	assignEventId,
@@ -106,24 +119,24 @@ import {
 	hasSourceUrl,
 	isBirthdayCalendar,
 } from "../../../common/calendar/date/CalendarUtils.js"
-import { getSharedGroupName, isSharedGroupOwner, loadGroupMembers } from "../../../common/sharing/GroupUtils.js"
-import { ExternalCalendarFacade } from "../../../common/native/common/generatedipc/ExternalCalendarFacade.js"
-import { DeviceConfig } from "../../../common/misc/DeviceConfig.js"
-import { locator } from "../../../common/api/main/CommonLocator.js"
+import {getSharedGroupName, isSharedGroupOwner, loadGroupMembers} from "../../../common/sharing/GroupUtils.js"
+import {ExternalCalendarFacade} from "../../../common/native/common/generatedipc/ExternalCalendarFacade.js"
+import {DeviceConfig} from "../../../common/misc/DeviceConfig.js"
+import {locator} from "../../../common/api/main/CommonLocator.js"
 import {
+	EventAlarmsTuple,
 	eventHasSameFields,
 	EventImportRejectionReason,
-	EventAlarmsTuple,
 	parseCalendarStringData,
 	shallowIsSameEvent,
 	sortOutParsedEvents,
 	SyncStatus,
 } from "../../../common/calendar/gui/ImportExportUtils.js"
-import { UserError } from "../../../common/api/main/UserError.js"
-import { LanguageViewModel } from "../../../common/misc/LanguageViewModel.js"
-import { NativePushServiceApp } from "../../../common/native/main/NativePushServiceApp.js"
-import { SyncTracker } from "../../../common/api/main/SyncTracker.js"
-import { CacheMode } from "../../../common/api/worker/rest/EntityRestClient"
+import {UserError} from "../../../common/api/main/UserError.js"
+import {LanguageViewModel} from "../../../common/misc/LanguageViewModel.js"
+import {NativePushServiceApp} from "../../../common/native/main/NativePushServiceApp.js"
+import {SyncTracker} from "../../../common/api/main/SyncTracker.js"
+import {CacheMode} from "../../../common/api/worker/rest/EntityRestClient"
 
 const TAG = "[CalendarModel]"
 const EXTERNAL_CALENDAR_RETRY_LIMIT = 3
