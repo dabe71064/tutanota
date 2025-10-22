@@ -75,7 +75,7 @@ export interface GridEventData {
  * Internal data structure tracking events within a single column.
  * Used during the column-packing phase of the layout algorithm.
  */
-interface ColumnData {
+export interface ColumnData {
 	/**
 	 * The row index where the last event in this column ends.
 	 * Used for quick availability checks when placing new events.
@@ -190,16 +190,19 @@ export class TimeView implements Component<TimeViewAttributes> {
 				end: timeRange.end.toDateTime(baseDate, getTimeZone()).plus({ minute: interval }).toJSDate(),
 			}
 
-			const orderedEvents = eventsForThisDate.toSorted((eventWrapperA, eventWrapperB) => {
-				const startTimeComparison = eventWrapperA.event.startTime.getTime() - eventWrapperB.event.startTime.getTime()
-				if (startTimeComparison === 0) {
-					return eventWrapperB.event.endTime.getTime() - eventWrapperA.event.endTime.getTime()
+			// Sort events for optimal lay outing
+			// Primary: earlier start times first
+			// Secondary: longer duration first (helps minimize columns)
+			const orderedEvents = eventsForThisDate.toSorted((a, b) => {
+				const startTimeDiff = a.event.startTime.getTime() - b.event.startTime.getTime()
+				if (startTimeDiff !== 0) {
+					return startTimeDiff
 				}
-
-				return startTimeComparison
+				// Longer events first (end time descending)
+				return b.event.endTime.getTime() - a.event.endTime.getTime()
 			})
 
-			const gridData = this.layoutEvents(orderedEvents, timeRange, subRowAsMinutes, timeScale, baseDate)
+			const gridData = TimeView.layoutEvents(orderedEvents, timeRange, subRowAsMinutes, timeScale, baseDate)
 
 			return orderedEvents.flatMap((eventWrapper) => {
 				const passesThroughToday =
@@ -309,32 +312,20 @@ export class TimeView implements Component<TimeViewAttributes> {
 	 * @param baseDate - Reference date for the calendar view
 	 * @returns Map of event IDs to their grid positioning data
 	 */
-	private layoutEvents(events: Array<EventWrapper>, timeRange: TimeRange, subRowAsMinutes: number, timeScale: TimeScale, baseDate: Date) {
-		// Step 1: Sort events for optimal packing
-		// Primary: earlier start times first
-		// Secondary: longer duration first (helps minimize columns)
-		const orderedEvents = events.toSorted((a, b) => {
-			const startTimeDiff = a.event.startTime.getTime() - b.event.startTime.getTime()
-			if (startTimeDiff !== 0) {
-				return startTimeDiff
-			}
-			// Longer events first (end time descending)
-			return b.event.endTime.getTime() - a.event.endTime.getTime()
-		})
-
-		// Step 2: Convert events to row-based coordinates
+	static layoutEvents(events: Array<EventWrapper>, timeRange: TimeRange, subRowAsMinutes: number, timeScale: TimeScale, baseDate: Date) {
+		// Step 1: Convert events to row-based coordinates
 		const eventsMap = new Map<Id, RowBounds>(
-			orderedEvents.map((wrapper) => {
-				const rowBounds = this.getRowBounds(wrapper.event, timeRange, subRowAsMinutes, timeScale, baseDate)
+			events.map((wrapper) => {
+				const rowBounds = TimeView.getRowBounds(wrapper.event, timeRange, subRowAsMinutes, timeScale, baseDate)
 				return [elementIdPart(wrapper.event._id), rowBounds]
 			}),
 		)
 
-		// Step 3: Pack events into columns using first-fit strategy
-		const columns = this.packEventsIntoColumns(eventsMap)
+		// Step 2: Pack events into columns using first-fit strategy
+		const columns = TimeView.packEventsIntoColumns(eventsMap)
 
-		// Step 4: Expand events to fill available horizontal space
-		return this.buildGridDataWithExpansion(columns)
+		// Step 3: Expand events to fill available horizontal space
+		return TimeView.buildGridDataWithExpansion(columns)
 	}
 
 	/**
@@ -344,7 +335,7 @@ export class TimeView implements Component<TimeViewAttributes> {
 	 * @param eventsMap - Map of event IDs to their row bounds
 	 * @returns Array of columns with their contained events
 	 */
-	private packEventsIntoColumns(eventsMap: Map<Id, RowBounds>): Array<ColumnData> {
+	static packEventsIntoColumns(eventsMap: Map<Id, RowBounds>): Array<ColumnData> {
 		const columns: Array<ColumnData> = []
 
 		for (const [eventId, rowBounds] of eventsMap.entries()) {
@@ -372,12 +363,12 @@ export class TimeView implements Component<TimeViewAttributes> {
 	 * @param columns - Array of columns with packed events
 	 * @returns Map of event IDs to complete grid positioning data
 	 */
-	private buildGridDataWithExpansion(columns: Array<ColumnData>): Map<Id, GridEventData> {
+	static buildGridDataWithExpansion(columns: Array<ColumnData>): Map<Id, GridEventData> {
 		const gridData = new Map<Id, GridEventData>()
 
 		for (const [columnIndex, columnData] of columns.entries()) {
 			for (const [eventId, rowBounds] of columnData.events.entries()) {
-				const columnSpan = this.calculateColumnSpan(columnIndex, rowBounds, columns)
+				const columnSpan = TimeView.calculateColumnSpan(columnIndex, rowBounds, columns)
 
 				const eventGridData: GridEventData = {
 					row: rowBounds,
@@ -408,7 +399,7 @@ export class TimeView implements Component<TimeViewAttributes> {
 	 * @param allColumns - All columns in the layout
 	 * @returns Number of columns the event can span (minimum 1)
 	 */
-	private calculateColumnSpan(eventColumnIndex: number, eventRowBounds: RowBounds, allColumns: Array<ColumnData>): number {
+	static calculateColumnSpan(eventColumnIndex: number, eventRowBounds: RowBounds, allColumns: Array<ColumnData>): number {
 		let span = 1
 
 		// Check each subsequent column for blocking events
@@ -436,7 +427,7 @@ export class TimeView implements Component<TimeViewAttributes> {
 	 *
 	 * @returns RowBounds
 	 */
-	private getRowBounds(
+	static getRowBounds(
 		eventTimeRange: { startTime: Date; endTime: Date },
 		timeRange: TimeRange,
 		subRowAsMinutes: number,
@@ -444,8 +435,7 @@ export class TimeView implements Component<TimeViewAttributes> {
 		baseDate: Date,
 	): RowBounds {
 		const interval = TIME_SCALE_BASE_VALUE / timeScale
-		const diffFromRangeStartToEventStart = timeRange.start.diff(Time.fromDate(eventTimeRange.startTime))
-
+		const diffFromRangeStartToEventStart = Math.abs(timeRange.start.asMinutes() - Time.fromDate(eventTimeRange.startTime).asMinutes())
 		const eventStartsBeforeRange = eventTimeRange.startTime < baseDate || Time.fromDate(eventTimeRange.startTime).isBefore(timeRange.start)
 		const start = eventStartsBeforeRange ? 1 : Math.floor(diffFromRangeStartToEventStart / subRowAsMinutes) + 1
 
@@ -461,7 +451,7 @@ export class TimeView implements Component<TimeViewAttributes> {
 
 		const diffFromRangeStartToEventEnd = timeRange.start.diff(Time.fromDate(eventTimeRange.endTime))
 		const eventEndsAfterRange = eventTimeRange.endTime > getStartOfNextDay(baseDate) || diff > 0
-		const end = eventEndsAfterRange ? -1 : Math.floor(diffFromRangeStartToEventEnd / subRowAsMinutes) + 1
+		const end = eventEndsAfterRange ? -1 : Math.ceil(diffFromRangeStartToEventEnd / subRowAsMinutes) + 1
 
 		return { start, end }
 	}
