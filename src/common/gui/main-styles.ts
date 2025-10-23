@@ -3217,7 +3217,6 @@ styles.registerStyle("main", () => {
 			background: theme.primary,
 			height: px(2),
 			width: "100%",
-			"z-index": 1,
 		},
 		".time-indicator:before": {
 			content: "''",

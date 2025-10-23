@@ -22,19 +22,15 @@ export type TimeRange = {
 	start: Time
 	end: Time
 }
-
-export enum EventConflictRenderPolicy {
-	OVERLAP,
-	PARALLEL,
-}
+export const SUBROWS_PER_INTERVAL = 12
 
 export interface TimeViewAttributes {
 	dates: Array<Date>
 	events: Array<EventWrapper>
 	timeScale: TimeScale
 	timeRange: TimeRange
-	conflictRenderPolicy: EventConflictRenderPolicy
-	timeIndicator?: Time
+	timeRowHeight: number
+	setTimeRowHeight: (timeRowHeight: number) => void
 	hasAnyConflict?: boolean
 	hoverEffect?: boolean
 	cellActionHandlers?: Pick<CellAttrs, "onCellPressed" | "onCellContextMenuPressed">
@@ -90,8 +86,6 @@ export interface ColumnData {
 	events: Map<Id, RowBounds>
 }
 
-const SUBROWS_PER_INTERVAL = 12
-
 export type CellActionHandler = (baseDate: Date, time: Time) => unknown
 
 interface CellAttrs {
@@ -102,16 +96,19 @@ interface CellAttrs {
 	onCellContextMenuPressed: CellActionHandler
 }
 
+export const getSubRowAsMinutes = deepMemoized((timeScale: TimeScale) => {
+	return TIME_SCALE_BASE_VALUE / timeScale / SUBROWS_PER_INTERVAL
+})
+
 export class TimeView implements Component<TimeViewAttributes> {
-	private timeRowHeight?: number
 	private parentHeight?: number
 	private columnCount: Map<number, number> = new Map()
 
 	view({ attrs }: Vnode<TimeViewAttributes>) {
-		const { timeScale, timeRange, events, conflictRenderPolicy, dates, timeIndicator, hasAnyConflict } = attrs
+		const { timeScale, timeRange, events, dates, hasAnyConflict } = attrs
 		const timeColumnIntervals = TimeColumn.createTimeColumnIntervals(attrs.timeScale, attrs.timeRange)
 		const subRowCount = SUBROWS_PER_INTERVAL * timeColumnIntervals.length
-		const subRowAsMinutes = TIME_SCALE_BASE_VALUE / timeScale / SUBROWS_PER_INTERVAL
+		const subRowAsMinutes = getSubRowAsMinutes(timeScale)
 
 		return m(
 			".grid.overflow-hidden.height-100p",
@@ -121,10 +118,10 @@ export class TimeView implements Component<TimeViewAttributes> {
 					"grid-template-columns": `repeat(${dates.length}, 1fr)`,
 				},
 				oninit: (vnode: VnodeDOM) => {
-					if (this.timeRowHeight == null) {
+					if (attrs.timeRowHeight === 0) {
 						window.requestAnimationFrame(() => {
 							const domHeight = Number.parseFloat(window.getComputedStyle(vnode.dom).height.replace("px", ""))
-							this.timeRowHeight = domHeight / subRowCount
+							attrs.setTimeRowHeight(domHeight / subRowCount)
 							this.parentHeight = domHeight
 							m.redraw()
 						})
@@ -132,7 +129,6 @@ export class TimeView implements Component<TimeViewAttributes> {
 				},
 			},
 			[
-				this.renderCurrentTimeIndicator(timeRange, subRowAsMinutes, timeIndicator),
 				dates.map((date) => {
 					const startOfTomorrow = getStartOfNextDay(date)
 					const startOfDay = getStartOfDay(date)
@@ -159,35 +155,12 @@ export class TimeView implements Component<TimeViewAttributes> {
 								attrs.cellActionHandlers?.onCellPressed ?? noOp,
 								attrs.cellActionHandlers?.onCellContextMenuPressed ?? noOp,
 							),
-							this.renderEventsAtDate(eventsForThisDate, timeRange, subRowAsMinutes, timeScale, date),
+							this.renderEventsAtDate(eventsForThisDate, timeRange, subRowAsMinutes, timeScale, date, attrs.timeRowHeight),
 						],
 					)
 				}),
 			],
 		)
-	}
-
-	/**
-	 * Renders a TimeIndicator line in the screen over the event grid
-	 * @param timeRange Time range for the day, usually from 00:00 till 23:00
-	 * @param subRowAsMinutes How many minutes a Grid row represents
-	 * @param time Time where to position the indicator
-	 * @private
-	 */
-	private renderCurrentTimeIndicator(timeRange: TimeRange, subRowAsMinutes: number, time?: Time): Children {
-		if (!time) {
-			return null
-		}
-
-		const startTimeSpan = timeRange.start.diff(time)
-		const start = Math.floor(startTimeSpan / subRowAsMinutes)
-
-		return m(".time-indicator.z3", {
-			style: {
-				top: px((this.timeRowHeight ?? 0) * start),
-				display: this.timeRowHeight == null ? "none" : "initial",
-			},
-		})
 	}
 
 	/**
@@ -200,7 +173,14 @@ export class TimeView implements Component<TimeViewAttributes> {
 	 * @private
 	 */
 	private renderEventsAtDate = deepMemoized(
-		(eventsForThisDate: Array<EventWrapper>, timeRange: TimeRange, subRowAsMinutes: number, timeScale: TimeScale, baseDate: Date): Children => {
+		(
+			eventsForThisDate: Array<EventWrapper>,
+			timeRange: TimeRange,
+			subRowAsMinutes: number,
+			timeScale: TimeScale,
+			baseDate: Date,
+			timeRowHeight: number,
+		): Children => {
 			const interval = TIME_SCALE_BASE_VALUE / timeScale
 			const timeRangeAsDate = {
 				start: timeRange.start.toDate(baseDate),
@@ -302,7 +282,7 @@ export class TimeView implements Component<TimeViewAttributes> {
 									border: `2px dashed #${eventWrapper.color}`,
 									click: (domEvent) => console.log("click"),
 									keyDown: (domEvent) => console.log("keyDown", domEvent),
-									height: (end - start) * (this.timeRowHeight ?? 1),
+									height: (end - start) * (timeRowHeight ?? 1),
 									hasAlarm: hasAlarmsForTheUser(locator.logins.getUserController().user, eventWrapper.event),
 									isAltered: eventWrapper.event.recurrenceId != null,
 									verticalPadding: size.calendar_day_event_padding,
