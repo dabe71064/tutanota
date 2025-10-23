@@ -142,7 +142,7 @@ export class TimeView implements Component<TimeViewAttributes> {
 					)
 
 					return m(
-						".grid.plr-unit.gap.z1.grid-auto-columns.rel.border-right",
+						".grid.plr-unit.gap.z1.grid-auto-columns.rel.border-right.min-width-0",
 						{
 							style: {
 								height: this.parentHeight ? px(this.parentHeight) : undefined,
@@ -510,14 +510,14 @@ export class TimeView implements Component<TimeViewAttributes> {
 				gridColumn: `1 / span ${this.columnCount.get(cellAttrs.baseDate.getTime()) ?? 1}`,
 			} satisfies Partial<CSSStyleDeclaration>,
 			onclick: (e: MouseEvent) => {
-				e.stopPropagation()
+				e.stopImmediatePropagation()
 				const eventBaseTime = getTimeFromClickInteraction(e, cellAttrs.time)
 				cellAttrs.onCellPressed(cellAttrs.baseDate, eventBaseTime)
 			},
 			oncontextmenu: (e: MouseEvent) => {
+				e.preventDefault()
 				const eventBaseTime = getTimeFromClickInteraction(e, cellAttrs.time)
 				cellAttrs.onCellContextMenuPressed(cellAttrs.baseDate, eventBaseTime)
-				e.preventDefault()
 			},
 		})
 	}

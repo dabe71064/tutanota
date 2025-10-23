@@ -86,12 +86,14 @@ export class CalendarViewComponent implements ClassComponent<CalendarViewCompone
 						".content-bg.border-radius-top-left-big",
 						{ style: { gridArea: "timeColumn" } },
 						m(TimeColumn, {
+							baseDate: attrs.headerComponentAttrs?.selectedDate,
 							timeRange: {
 								start: new Time(0, 0),
 								end: new Time(23, 0),
 							},
 							timeScale: 1, // FIXME add support to smooth/continuous zoom,
 							width: styles.isDesktopLayout() ? size.calendar_hour_width : size.calendar_hour_width_mobile,
+							onCellPressed: attrs.cellActionHandlers?.onCellPressed,
 						} satisfies TimeColumnAttrs),
 					),
 					m(
