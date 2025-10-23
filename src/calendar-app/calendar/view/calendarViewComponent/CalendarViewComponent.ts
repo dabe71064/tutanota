@@ -30,20 +30,13 @@ interface BodyComponentAttrs {
 }
 
 export interface CalendarViewComponentAttrs {
-	/**
-	 * Define header attrs
-	 */
 	headerComponentAttrs?: HeaderComponentAttrs
 	bodyComponentAttrs: BodyComponentAttrs
+	cellActionHandlers: TimeViewAttributes["cellActionHandlers"]
 }
 
 export class CalendarViewComponent implements ClassComponent<CalendarViewComponentAttrs> {
 	view({ attrs }: Vnode<CalendarViewComponentAttrs>) {
-		console.log("Evs", {
-			current: attrs.bodyComponentAttrs.current,
-			previous: attrs.bodyComponentAttrs.previous,
-			next: attrs.bodyComponentAttrs.next,
-		})
 		const classes = [styles.isDesktopLayout() ? "content-bg" : "nav-bg", styles.isDesktopLayout() ? "border-bottom" : ""].join(" ")
 		const renderHeader = () => {
 			const children: Children = []
@@ -108,15 +101,27 @@ export class CalendarViewComponent implements ClassComponent<CalendarViewCompone
 							classes: "height-100p",
 							previousPage: {
 								key: attrs.bodyComponentAttrs.previous.key,
-								nodes: this.renderEventGrid(attrs.bodyComponentAttrs.previous.dates, attrs.bodyComponentAttrs.previous.events.short),
+								nodes: this.renderEventGrid(
+									attrs.bodyComponentAttrs.previous.dates,
+									attrs.bodyComponentAttrs.previous.events.short,
+									attrs.cellActionHandlers,
+								),
 							},
 							currentPage: {
 								key: attrs.bodyComponentAttrs.current.key,
-								nodes: this.renderEventGrid(attrs.bodyComponentAttrs.current.dates, attrs.bodyComponentAttrs.current.events.short),
+								nodes: this.renderEventGrid(
+									attrs.bodyComponentAttrs.current.dates,
+									attrs.bodyComponentAttrs.current.events.short,
+									attrs.cellActionHandlers,
+								),
 							},
 							nextPage: {
 								key: attrs.bodyComponentAttrs.next.key,
-								nodes: this.renderEventGrid(attrs.bodyComponentAttrs.next.dates, attrs.bodyComponentAttrs.next.events.short),
+								nodes: this.renderEventGrid(
+									attrs.bodyComponentAttrs.next.dates,
+									attrs.bodyComponentAttrs.next.events.short,
+									attrs.cellActionHandlers,
+								),
 							},
 							onChangePage: (next) => attrs.bodyComponentAttrs.onChangePage(next),
 						}),
@@ -146,7 +151,7 @@ export class CalendarViewComponent implements ClassComponent<CalendarViewCompone
 		)
 	}
 
-	private renderEventGrid(dates: Array<Date>, events: Array<EventWrapper>) {
+	private renderEventGrid(dates: Array<Date>, events: Array<EventWrapper>, cellActionHandlers: TimeViewAttributes["cellActionHandlers"]) {
 		return m(TimeView, {
 			timeRange: {
 				start: new Time(0, 0),
@@ -157,6 +162,7 @@ export class CalendarViewComponent implements ClassComponent<CalendarViewCompone
 			conflictRenderPolicy: EventConflictRenderPolicy.PARALLEL,
 			events,
 			timeIndicator: Time.fromDate(new Date()),
+			cellActionHandlers,
 		} satisfies TimeViewAttributes)
 	}
 }

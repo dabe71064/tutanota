@@ -1,12 +1,12 @@
-import m, { ChildArray, Children, Component, Vnode, VnodeDOM } from "mithril"
+import m, { Child, ChildArray, Children, Component, Vnode, VnodeDOM } from "mithril"
 import { Time } from "../date/Time"
-import { deepMemoized, getStartOfDay, getStartOfNextDay, mapNullable } from "@tutao/tutanota-utils"
+import { deepMemoized, getStartOfDay, getStartOfNextDay, mapNullable, noOp } from "@tutao/tutanota-utils"
 import { px, size } from "../../gui/size.js"
 import { Icon, IconSize } from "../../gui/base/Icon.js"
 import { Icons } from "../../gui/base/icons/Icons.js"
 import { theme } from "../../gui/theme.js"
 import { colorForBg } from "../../gui/base/GuiUtils.js"
-import { getTimeTextFormatForLongEvent, getTimeZone, hasAlarmsForTheUser, isBirthdayCalendar } from "../date/CalendarUtils"
+import { getTimeFromClickInteraction, getTimeTextFormatForLongEvent, getTimeZone, hasAlarmsForTheUser, isBirthdayCalendar } from "../date/CalendarUtils"
 import { TimeColumn } from "./TimeColumn"
 import { elementIdPart, listIdPart } from "../../api/common/utils/EntityUtils"
 import { DateTime } from "luxon"
@@ -37,6 +37,7 @@ export interface TimeViewAttributes {
 	timeIndicator?: Time
 	hasAnyConflict?: boolean
 	hoverEffect?: boolean
+	cellActionHandlers?: Pick<CellAttrs, "onCellPressed" | "onCellContextMenuPressed">
 }
 
 /**
@@ -91,10 +92,20 @@ export interface ColumnData {
 
 const SUBROWS_PER_INTERVAL = 12
 
+export type CellActionHandler = (baseDate: Date, time: Time) => unknown
+
+interface CellAttrs {
+	baseDate: Date
+	time: Time
+	rowBoundStart: number
+	onCellPressed: CellActionHandler
+	onCellContextMenuPressed: CellActionHandler
+}
+
 export class TimeView implements Component<TimeViewAttributes> {
 	private timeRowHeight?: number
 	private parentHeight?: number
-	private columnCount: number = 0
+	private columnCount: Map<number, number> = new Map()
 
 	view({ attrs }: Vnode<TimeViewAttributes>) {
 		const { timeScale, timeRange, events, conflictRenderPolicy, dates, timeIndicator, hasAnyConflict } = attrs
@@ -121,7 +132,7 @@ export class TimeView implements Component<TimeViewAttributes> {
 				},
 			},
 			[
-				this.buildTimeIndicator(timeRange, subRowAsMinutes, timeIndicator),
+				this.renderCurrentTimeIndicator(timeRange, subRowAsMinutes, timeIndicator),
 				dates.map((date) => {
 					const startOfTomorrow = getStartOfNextDay(date)
 					const startOfDay = getStartOfDay(date)
@@ -141,7 +152,13 @@ export class TimeView implements Component<TimeViewAttributes> {
 							},
 						},
 						[
-							// this.renderCells(timeScale, timeRange),
+							this.renderInteractableCells(
+								date,
+								timeScale,
+								timeRange,
+								attrs.cellActionHandlers?.onCellPressed ?? noOp,
+								attrs.cellActionHandlers?.onCellContextMenuPressed ?? noOp,
+							),
 							this.renderEventsAtDate(eventsForThisDate, timeRange, subRowAsMinutes, timeScale, date),
 						],
 					)
@@ -157,7 +174,7 @@ export class TimeView implements Component<TimeViewAttributes> {
 	 * @param time Time where to position the indicator
 	 * @private
 	 */
-	private buildTimeIndicator(timeRange: TimeRange, subRowAsMinutes: number, time?: Time): Children {
+	private renderCurrentTimeIndicator(timeRange: TimeRange, subRowAsMinutes: number, time?: Time): Children {
 		if (!time) {
 			return null
 		}
@@ -202,7 +219,8 @@ export class TimeView implements Component<TimeViewAttributes> {
 				return b.event.endTime.getTime() - a.event.endTime.getTime()
 			})
 
-			const gridData = TimeView.layoutEvents(orderedEvents, timeRange, subRowAsMinutes, timeScale, baseDate)
+			const { grid, gridColumnSize } = TimeView.layoutEvents(orderedEvents, timeRange, subRowAsMinutes, timeScale, baseDate)
+			this.columnCount.set(baseDate.getTime(), gridColumnSize)
 
 			return orderedEvents.flatMap((eventWrapper) => {
 				const passesThroughToday =
@@ -219,7 +237,7 @@ export class TimeView implements Component<TimeViewAttributes> {
 					return []
 				}
 
-				const evData = gridData.get(elementIdPart(eventWrapper.event._id))
+				const evData = grid.get(elementIdPart(eventWrapper.event._id))
 				if (!evData) {
 					return []
 				}
@@ -325,7 +343,7 @@ export class TimeView implements Component<TimeViewAttributes> {
 		const columns = TimeView.packEventsIntoColumns(eventsMap)
 
 		// Step 3: Expand events to fill available horizontal space
-		return TimeView.buildGridDataWithExpansion(columns)
+		return { grid: TimeView.buildGridDataWithExpansion(columns), gridColumnSize: columns.length }
 	}
 
 	/**
@@ -456,26 +474,51 @@ export class TimeView implements Component<TimeViewAttributes> {
 		return { start, end }
 	}
 
-	private renderCells(timeScale: TimeScale, timeRange: TimeRange): Children {
+	private renderInteractableCells(
+		baseDate: Date,
+		timeScale: TimeScale,
+		timeRange: TimeRange,
+		onCellPressed: CellActionHandler,
+		onCellContextMenuPressed: CellActionHandler,
+	): Children {
 		let timeIntervalInMinutes = TIME_SCALE_BASE_VALUE / timeScale
 		const numberOfIntervals = (timeRange.start.diff(timeRange.end) + timeIntervalInMinutes) / timeIntervalInMinutes
 
 		const children: Children = []
 		for (let hourIndex = 0; hourIndex < numberOfIntervals; hourIndex++) {
+			const time: Time = Time.fromMinutes(hourIndex * timeIntervalInMinutes)
 			const rowBoundStart = hourIndex * SUBROWS_PER_INTERVAL + 1
-			const rowBoundEnd = rowBoundStart + SUBROWS_PER_INTERVAL
+
 			children.push(
-				m(".z1.w-full", {
-					style: {
-						gridRow: `${rowBoundStart} / span ${SUBROWS_PER_INTERVAL}`,
-						gridColumn: `1 / span ${this.columnCount}`,
-						background: "red",
-					},
-					click: () => console.log("Cell click"),
+				this.renderCell({
+					baseDate,
+					time,
+					rowBoundStart,
+					onCellPressed,
+					onCellContextMenuPressed,
 				}),
 			)
 		}
 
 		return children
+	}
+
+	private renderCell(cellAttrs: CellAttrs): Child {
+		return m(".z1.interactable-cell.cursor-pointer", {
+			style: {
+				gridRow: `${cellAttrs.rowBoundStart} / span ${SUBROWS_PER_INTERVAL}`,
+				gridColumn: `1 / span ${this.columnCount.get(cellAttrs.baseDate.getTime()) ?? 1}`,
+			} satisfies Partial<CSSStyleDeclaration>,
+			onclick: (e: MouseEvent) => {
+				e.stopPropagation()
+				const eventBaseTime = getTimeFromClickInteraction(e, cellAttrs.time)
+				cellAttrs.onCellPressed(cellAttrs.baseDate, eventBaseTime)
+			},
+			oncontextmenu: (e: MouseEvent) => {
+				const eventBaseTime = getTimeFromClickInteraction(e, cellAttrs.time)
+				cellAttrs.onCellContextMenuPressed(cellAttrs.baseDate, eventBaseTime)
+				e.preventDefault()
+			},
+		})
 	}
 }
