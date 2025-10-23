@@ -803,8 +803,7 @@ styles.registerStyle("main", () => {
 			height: "1px",
 			background: theme.outline_variant,
 			position: "absolute",
-			bottom: "-1px",
-			left: 0,
+			"z-index": 1,
 		},
 		// borders
 		".border-bottom": {

@@ -47,18 +47,20 @@ export class TimeColumn implements ClassComponent<TimeColumnAttrs> {
 				const parsedTime = Time.parseFromString(time)?.toDate() ?? new Time(0, 0).toDate()
 				const timeStr = styles.isDesktopLayout() ? formatTime(parsedTime) : formatShortTime(parsedTime)
 				return m(
-					".flex.small.border-right.rel.justify-center.items-center.interactable-cell.cursor-pointer",
-					{
-						class: index !== times.length - 1 ? "after-as-border-bottom" : "",
-						style: {
-							height: px(size.calendar_hour_height), // FIXME apply dynamic height according to zoom
+					".rel.after-as-border-bottom",
+					m(
+						".flex.small.border-right.rel.justify-center.items-center.interactable-cell.cursor-pointer",
+						{
+							style: {
+								height: px(size.calendar_hour_height), // FIXME apply dynamic height according to zoom
+							},
+							onclick: (e: MouseEvent) => {
+								e.stopImmediatePropagation()
+								onCellPressed(baseDate, Time.parseFromString(time) ?? new Time(0, 0))
+							},
 						},
-						onclick: (e: MouseEvent) => {
-							e.stopImmediatePropagation()
-							onCellPressed(baseDate, Time.parseFromString(time) ?? new Time(0, 0))
-						},
-					},
-					timeStr,
+						timeStr,
+					),
 				)
 			}),
 		)

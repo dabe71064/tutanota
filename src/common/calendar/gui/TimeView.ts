@@ -14,6 +14,7 @@ import { CalendarEventBubble } from "../../../calendar-app/calendar/view/Calenda
 import { formatEventTime } from "../../../calendar-app/calendar/gui/CalendarGuiUtils"
 import { locator } from "../../api/main/CommonLocator"
 import { EventWrapper } from "../../../calendar-app/calendar/view/CalendarViewModel"
+import { DefaultAnimationTime } from "../../gui/animation/Animations"
 
 export const TIME_SCALE_BASE_VALUE = 60
 export type TimeScale = 1 | 2 | 4
@@ -32,7 +33,6 @@ export interface TimeViewAttributes {
 	timeRowHeight: number
 	setTimeRowHeight: (timeRowHeight: number) => void
 	hasAnyConflict?: boolean
-	hoverEffect?: boolean
 	cellActionHandlers?: Pick<CellAttrs, "onCellPressed" | "onCellContextMenuPressed">
 }
 
@@ -91,9 +91,9 @@ export type CellActionHandler = (baseDate: Date, time: Time) => unknown
 interface CellAttrs {
 	baseDate: Date
 	time: Time
-	rowBoundStart: number
-	onCellPressed: CellActionHandler
-	onCellContextMenuPressed: CellActionHandler
+	rowBounds: RowBounds
+	onCellPressed?: CellActionHandler
+	onCellContextMenuPressed?: CellActionHandler
 }
 
 export const getSubRowAsMinutes = deepMemoized((timeScale: TimeScale) => {
@@ -116,13 +116,15 @@ export class TimeView implements Component<TimeViewAttributes> {
 				style: {
 					"overflow-x": "hidden",
 					"grid-template-columns": `repeat(${dates.length}, 1fr)`,
+					transition: `opacity ${DefaultAnimationTime}ms linear`,
+					opacity: this.parentHeight == null ? 0 : 1,
 				},
 				oninit: (vnode: VnodeDOM) => {
-					if (attrs.timeRowHeight === 0) {
+					if (this.parentHeight == null) {
 						window.requestAnimationFrame(() => {
 							const domHeight = Number.parseFloat(window.getComputedStyle(vnode.dom).height.replace("px", ""))
-							attrs.setTimeRowHeight(domHeight / subRowCount)
 							this.parentHeight = domHeight
+							attrs.setTimeRowHeight(domHeight / subRowCount)
 							m.redraw()
 						})
 					}
@@ -152,8 +154,8 @@ export class TimeView implements Component<TimeViewAttributes> {
 								date,
 								timeScale,
 								timeRange,
-								attrs.cellActionHandlers?.onCellPressed ?? noOp,
-								attrs.cellActionHandlers?.onCellContextMenuPressed ?? noOp,
+								attrs.cellActionHandlers?.onCellPressed,
+								attrs.cellActionHandlers?.onCellContextMenuPressed,
 							),
 							this.renderEventsAtDate(eventsForThisDate, timeRange, subRowAsMinutes, timeScale, date, attrs.timeRowHeight),
 						],
@@ -458,22 +460,26 @@ export class TimeView implements Component<TimeViewAttributes> {
 		baseDate: Date,
 		timeScale: TimeScale,
 		timeRange: TimeRange,
-		onCellPressed: CellActionHandler,
-		onCellContextMenuPressed: CellActionHandler,
+		onCellPressed?: CellActionHandler,
+		onCellContextMenuPressed?: CellActionHandler,
 	): Children {
 		let timeIntervalInMinutes = TIME_SCALE_BASE_VALUE / timeScale
 		const numberOfIntervals = (timeRange.start.diff(timeRange.end) + timeIntervalInMinutes) / timeIntervalInMinutes
 
 		const children: Children = []
 		for (let hourIndex = 0; hourIndex < numberOfIntervals; hourIndex++) {
-			const time: Time = Time.fromMinutes(hourIndex * timeIntervalInMinutes)
-			const rowBoundStart = hourIndex * SUBROWS_PER_INTERVAL + 1
+			const startTime: Time = Time.fromMinutes(hourIndex * timeIntervalInMinutes)
+			const rowStart = hourIndex * SUBROWS_PER_INTERVAL + 1
+			const rowEnd = rowStart + SUBROWS_PER_INTERVAL
 
 			children.push(
 				this.renderCell({
 					baseDate,
-					time,
-					rowBoundStart,
+					time: startTime,
+					rowBounds: {
+						start: rowStart,
+						end: rowEnd,
+					},
 					onCellPressed,
 					onCellContextMenuPressed,
 				}),
@@ -484,21 +490,29 @@ export class TimeView implements Component<TimeViewAttributes> {
 	}
 
 	private renderCell(cellAttrs: CellAttrs): Child {
-		return m(".z1.interactable-cell.cursor-pointer", {
+		const showHoverEffect = cellAttrs.onCellPressed || cellAttrs.onCellContextMenuPressed
+		const classes = showHoverEffect ? "interactable-cell cursor-pointer" : ""
+
+		return m(".z1", {
+			class: classes,
 			style: {
-				gridRow: `${cellAttrs.rowBoundStart} / span ${SUBROWS_PER_INTERVAL}`,
+				gridRow: `${cellAttrs.rowBounds.start} / ${cellAttrs.rowBounds.end}`,
 				gridColumn: `1 / span ${this.columnCount.get(cellAttrs.baseDate.getTime()) ?? 1}`,
 			} satisfies Partial<CSSStyleDeclaration>,
-			onclick: (e: MouseEvent) => {
-				e.stopImmediatePropagation()
-				const eventBaseTime = getTimeFromClickInteraction(e, cellAttrs.time)
-				cellAttrs.onCellPressed(cellAttrs.baseDate, eventBaseTime)
-			},
-			oncontextmenu: (e: MouseEvent) => {
-				e.preventDefault()
-				const eventBaseTime = getTimeFromClickInteraction(e, cellAttrs.time)
-				cellAttrs.onCellContextMenuPressed(cellAttrs.baseDate, eventBaseTime)
-			},
+			onclick: cellAttrs.onCellPressed
+				? (e: MouseEvent) => {
+						e.stopImmediatePropagation()
+						const eventBaseTime = getTimeFromClickInteraction(e, cellAttrs.time)
+						cellAttrs.onCellPressed?.(cellAttrs.baseDate, eventBaseTime)
+					}
+				: noOp,
+			oncontextmenu: cellAttrs.onCellContextMenuPressed
+				? (e: MouseEvent) => {
+						e.preventDefault()
+						const eventBaseTime = getTimeFromClickInteraction(e, cellAttrs.time)
+						cellAttrs.onCellContextMenuPressed?.(cellAttrs.baseDate, eventBaseTime)
+					}
+				: null,
 		})
 	}
 }
