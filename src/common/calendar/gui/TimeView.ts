@@ -455,7 +455,7 @@ export class TimeView implements ClassComponent<TimeViewAttributes> {
 
 	private renderCell(cellAttrs: CellAttrs): Child {
 		const showHoverEffect = cellAttrs.onCellPressed || cellAttrs.onCellContextMenuPressed
-		const classes = showHoverEffect ? "interactable-cell cursor-pointer" : ""
+		const classes = showHoverEffect ? "interactable-cell cursor-pointer after-as-border-bottom" : ""
 
 		return m(".z1", {
 			class: classes,

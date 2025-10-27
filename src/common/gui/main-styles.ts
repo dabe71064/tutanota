@@ -804,10 +804,13 @@ styles.registerStyle("main", () => {
 		".will-change-alpha": {
 			"will-change": "alpha",
 		},
+		".after-as-border-bottom": {
+			position: "relative",
+		},
 		".after-as-border-bottom:after": {
 			// Hacky solution to create a border that extends the whole parent
 			content: "''",
-			width: "100vw",
+			width: "100%",
 			height: "1px",
 			background: theme.outline_variant,
 			position: "absolute",
