@@ -18,7 +18,7 @@ export class PdfRecoveryDocumentGenerator {
 		const qrCode = new QRCode({
 			height: 50,
 			width: 50,
-			content: "Hello World",
+			content: this.recoveryCode,
 			padding: 0,
 			xmlDeclaration: false,
 		})

@@ -76,18 +76,15 @@ export class PdfDocument {
 	 */
 	addQrSvg(svgString: string, topLeftMm: [number, number]): PdfDocument {
 		const parsed = parseQrSvg(svgString)
-		const { width: svgWidth, height: svgHeight, rects: allRects } = parsed
+		const { rects } = parsed
 
 		// We'll build a tiny buffer to keep the stream readable and append once.
 		const ops: string[] = []
 
-		// Only draw black modules; whites are the page color
-		const rectanglesToDraw = allRects.filter((r) => r.fill === 0)
-
-		if (rectanglesToDraw.length > 0) {
+		if (rects.length > 0) {
 			ops.push(`0 g`) // set fill color to black once
 
-			for (const rect of rectanglesToDraw) {
+			for (const rect of rects) {
 				// Expand terse fields into descriptive locals for clarity
 				const rectXmm = topLeftMm[0] + rect.x
 				const rectYmm = topLeftMm[1] + rect.y
