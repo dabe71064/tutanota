@@ -13,12 +13,6 @@ export interface ParsedQr {
 
 const EPS = 1e-6
 
-/** Parse numeric attributes like "180" or "180px". */
-function parseNumeric(value?: string): number {
-	if (!value) return 0
-	return parseFloat(value.replace(/px$/i, ""))
-}
-
 /** Extract attributes from a single tag string. */
 function parseAttributes(tag: string): Record<string, string> {
 	const attributes: Record<string, string> = {}
@@ -35,8 +29,8 @@ export function parseQrSvg(svg: string): ParsedQr {
 	if (!svgTag) throw new Error("No <svg> tag found")
 
 	const svgAttributes = parseAttributes(svgTag)
-	const svgWidth = parseNumeric(svgAttributes["width"])
-	const svgHeight = parseNumeric(svgAttributes["height"])
+	const svgWidth = parseFloat(svgAttributes["width"])
+	const svgHeight = parseFloat(svgAttributes["height"])
 	if (!(svgWidth > 0 && svgHeight > 0)) {
 		throw new Error(`Invalid SVG dimensions: ${svgWidth}x${svgHeight}`)
 	}
@@ -48,10 +42,10 @@ export function parseQrSvg(svg: string): ParsedQr {
 		const rectTag = match[0]
 		const attrs = parseAttributes(rectTag)
 
-		const x = parseNumeric(attrs["x"])
-		const y = parseNumeric(attrs["y"])
-		const width = parseNumeric(attrs["width"])
-		const height = parseNumeric(attrs["height"])
+		const x = parseFloat(attrs["x"])
+		const y = parseFloat(attrs["y"])
+		const width = parseFloat(attrs["width"])
+		const height = parseFloat(attrs["height"])
 		if (!(width > 0 && height > 0)) continue
 		const isBackgroundRect = x < EPS && y < EPS && Math.abs(width - svgWidth) < EPS && Math.abs(height - svgHeight) < EPS
 		if (!isBackgroundRect) rectangles.push({ x, y, width: width, height: height })
