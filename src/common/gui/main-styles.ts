@@ -138,6 +138,7 @@ styles.registerStyle("main", () => {
 		},
 		":root": {
 			// We need it because we can't get env() value from JS directly
+			// environment-variables return 0px on Android, that's why we are using var for Android
 			"--safe-area-inset-bottom": isAndroidApp() ? "var(--safe-area-inset-bottom)" : "env(safe-area-inset-bottom)",
 			"--safe-area-inset-top": isAndroidApp() ? "var(--safe-area-inset-top)" : "env(safe-area-inset-top)",
 			"--safe-area-inset-right": isAndroidApp() ? "var(--safe-area-inset-right)" : "env(safe-area-inset-right)",
@@ -1645,6 +1646,7 @@ styles.registerStyle("main", () => {
 			left: px(0),
 			"overflow-x": "hidden",
 		},
+		//FIXME var is only for Android for others use env
 		".mlr-safe-inset": {
 			"margin-right": "var(--safe-area-inset-right)",
 			"margin-left": "var(--safe-area-inset-left)",
@@ -1655,6 +1657,15 @@ styles.registerStyle("main", () => {
 		},
 		".mt-safe-inset": {
 			"margin-top": "var(--safe-area-inset-top)",
+		},
+		".pt-safe-inset": {
+			"padding-top": "var(--safe-area-inset-top)",
+		},
+		".pb-safe-inset": {
+			"padding-bottom": "var(--safe-area-inset-bottom)",
+		},
+		".mb-safe-inset": {
+			"margin-bottom": "var(--safe-area-inset-bottom)",
 		},
 		// header
 		".header-nav": {
