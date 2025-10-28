@@ -2,6 +2,7 @@ import { boldFontWidths, PdfDictValue, PdfObjectRef, PdfStreamEncoding, regularF
 import { PdfWriter } from "./PdfWriter.js"
 import { Deflater } from "./Deflater.js"
 import { stringToUtf8Uint8Array } from "@tutao/tutanota-utils"
+import { parseQrSvg } from "./qrSvg.js"
 
 export enum PDF_FONTS {
 	REGULAR = 1,
@@ -62,6 +63,46 @@ export class PdfDocument {
 		this.pdfWriter = pdfWriter
 		this.pdfWriter.setupDefaultObjects()
 		this.deflater = new Deflater()
+	}
+
+	/**
+	 * Draw a QR-code SVG (rect-only) at a given top-left position using millimeters.
+	 *
+	 * Coordinates follow this class's mm/top-left contract; the internal render wraps
+	 * the stream in a transform that flips to PDF bottom-left space.
+	 *
+	 * @param svgString    Raw SVG string (QR-style: <rect> elements only)
+	 * @param topLeftMm    xMm, yMm top-left position in millimeters
+	 */
+	addQrSvg(svgString: string, topLeftMm: [number, number]): PdfDocument {
+		const parsed = parseQrSvg(svgString)
+		const { width: svgWidth, height: svgHeight, rects: allRects } = parsed
+
+		// We'll build a tiny buffer to keep the stream readable and append once.
+		const ops: string[] = []
+
+		// Only draw black modules; whites are the page color
+		const rectanglesToDraw = allRects.filter((r) => r.fill === 0)
+
+		if (rectanglesToDraw.length > 0) {
+			ops.push(`0 g`) // set fill color to black once
+
+			for (const rect of rectanglesToDraw) {
+				// Expand terse fields into descriptive locals for clarity
+				const rectXmm = topLeftMm[0] + rect.x
+				const rectYmm = topLeftMm[1] + rect.y
+				const rectWidthMm = rect.width
+				const rectHeightMm = rect.height
+
+				ops.push(`${mmToPSPoint(rectXmm)} ${mmToPSPoint(rectYmm)} ${mmToPSPoint(rectWidthMm)} ${mmToPSPoint(rectHeightMm)} re`)
+			}
+			ops.push(`f`) // fill all accumulated rectangles
+		}
+
+		// Append once for better readability of the content stream
+		this.graphicsStream += ops.join(" ") + " "
+
+		return this
 	}
 
 	/**
