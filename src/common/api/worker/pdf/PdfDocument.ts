@@ -68,24 +68,17 @@ export class PdfDocument {
 	/**
 	 * Draw a QR-code SVG (rect-only) at a given top-left position using millimeters.
 	 *
-	 * Coordinates follow this class's mm/top-left contract; the internal render wraps
-	 * the stream in a transform that flips to PDF bottom-left space.
-	 *
 	 * @param svgString    Raw SVG string (QR-style: <rect> elements only)
 	 * @param topLeftMm    xMm, yMm top-left position in millimeters
 	 */
 	addQrSvg(svgString: string, topLeftMm: [number, number]): PdfDocument {
 		const parsed = parseQrSvg(svgString)
-		const { rects } = parsed
-
-		// We'll build a tiny buffer to keep the stream readable and append once.
 		const ops: string[] = []
 
-		if (rects.length > 0) {
+		if (parsed.rects.length > 0) {
 			ops.push(`0 g`) // set fill color to black once
 
-			for (const rect of rects) {
-				// Expand terse fields into descriptive locals for clarity
+			for (const rect of parsed.rects) {
 				const rectXmm = topLeftMm[0] + rect.x
 				const rectYmm = topLeftMm[1] + rect.y
 				const rectWidthMm = rect.width
@@ -95,10 +88,7 @@ export class PdfDocument {
 			}
 			ops.push(`f`) // fill all accumulated rectangles
 		}
-
-		// Append once for better readability of the content stream
 		this.graphicsStream += ops.join(" ") + " "
-
 		return this
 	}
 
