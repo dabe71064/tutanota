@@ -9,6 +9,7 @@ import {
 	MailService,
 	ManageLabelService,
 	MoveMailService,
+	ProcessInboxService,
 	ReportMailService,
 	ResolveConversationsService,
 	SendDraftService,
@@ -60,6 +61,8 @@ import {
 	createManageLabelServicePostIn,
 	createMoveMailData,
 	createNewDraftAttachment,
+	createProcessInboxDatum,
+	createProcessInboxPostIn,
 	createReportMailPostData,
 	createResolveConversationsServiceGetIn,
 	createSecureExternalRecipientKeyData,
@@ -81,6 +84,7 @@ import {
 	MailFolder,
 	MailTypeRef,
 	MovedMails,
+	ProcessInboxDatum,
 	ReportedMailFieldMarker,
 	SendDraftData,
 	SymEncInternalRecipientKeyData,
@@ -132,6 +136,7 @@ import { UNCOMPRESSED_MAX_SIZE } from "../../Compression.js"
 import {
 	Aes128Key,
 	aes256RandomKey,
+	aesEncrypt,
 	AesKey,
 	bitArrayToUint8Array,
 	createAuthVerifier,
@@ -155,13 +160,14 @@ import { LoginFacade } from "../LoginFacade.js"
 import { ProgrammingError } from "../../../common/error/ProgrammingError.js"
 import { OwnerEncSessionKeyProvider } from "../../rest/EntityRestClient.js"
 import { KeyLoaderFacade, parseKeyVersion } from "../KeyLoaderFacade.js"
-import { _encryptBytes, _encryptKeyWithVersionedKey, _encryptString, VersionedKey } from "../../crypto/CryptoWrapper.js"
+import { CryptoWrapper, VersionedKey } from "../../crypto/CryptoWrapper.js"
 import { PublicEncryptionKeyProvider } from "../PublicEncryptionKeyProvider.js"
 import { EntityUpdateData, isUpdateForTypeRef } from "../../../common/utils/EntityUpdateUtils"
 import { Entity } from "../../../common/EntityTypes"
 import { KeyVerificationMismatchError } from "../../../common/error/KeyVerificationMismatchError"
 import { VerifiedPublicEncryptionKey } from "./KeyVerificationFacade"
 import { ClientClassifierType } from "../../../common/ClientClassifierType"
+import { UnencryptedProcessInboxDatum } from "../../../../../mail-app/mail/model/ProcessInboxHandler"
 
 assertWorkerOrNode()
 type Attachments = ReadonlyArray<TutanotaFile | DataFile | FileReference>
@@ -204,6 +210,7 @@ export class MailFacade {
 		private readonly userFacade: UserFacade,
 		private readonly entityClient: EntityClient,
 		private readonly crypto: CryptoFacade,
+		private readonly cryptoWrapper: CryptoWrapper,
 		private readonly serviceExecutor: IServiceExecutor,
 		private readonly blobFacade: BlobFacade,
 		private readonly fileApp: NativeFileApp,
@@ -216,7 +223,7 @@ export class MailFacade {
 		const mailGroupKey = await this.keyLoaderFacade.getCurrentSymGroupKey(ownerGroupId)
 
 		const sk = aes256RandomKey()
-		const ownerEncSessionKey = _encryptKeyWithVersionedKey(mailGroupKey, sk)
+		const ownerEncSessionKey = this.cryptoWrapper.encryptKeyWithVersionedKey(mailGroupKey, sk)
 		const newFolder = createCreateMailFolderData({
 			folderName: name,
 			parentFolder: parent,
@@ -295,7 +302,7 @@ export class MailFacade {
 		const mailGroupKey = await this.keyLoaderFacade.getCurrentSymGroupKey(senderMailGroupId)
 
 		const sk = aes256RandomKey()
-		const ownerEncSessionKey = _encryptKeyWithVersionedKey(mailGroupKey, sk)
+		const ownerEncSessionKey = this.cryptoWrapper.encryptKeyWithVersionedKey(mailGroupKey, sk)
 		const service = createDraftCreateData({
 			previousMessageId: previousMessageId,
 			conversationType: conversationType,
@@ -541,7 +548,7 @@ export class MailFacade {
 				// forwarded attachment which was not in the draft before
 				return this.crypto.resolveSessionKey(providedFile).then((fileSessionKey) => {
 					const sessionKey = assertNotNull(fileSessionKey, "filesessionkey was not resolved")
-					const ownerEncFileSessionKey = _encryptKeyWithVersionedKey(mailGroupKey, sessionKey)
+					const ownerEncFileSessionKey = this.cryptoWrapper.encryptKeyWithVersionedKey(mailGroupKey, sessionKey)
 					const attachment = createDraftAttachment({
 						existingFile: getLetId(providedFile),
 						ownerEncFileSessionKey: ownerEncFileSessionKey.key,
@@ -571,13 +578,13 @@ export class MailFacade {
 		providedFile: DataFile | FileReference,
 		mailGroupKey: VersionedKey,
 	): DraftAttachment {
-		const ownerEncFileSessionKey = _encryptKeyWithVersionedKey(mailGroupKey, fileSessionKey)
+		const ownerEncFileSessionKey = this.cryptoWrapper.encryptKeyWithVersionedKey(mailGroupKey, fileSessionKey)
 		return createDraftAttachment({
 			newFile: createNewDraftAttachment({
-				encFileName: _encryptString(fileSessionKey, providedFile.name),
-				encMimeType: _encryptString(fileSessionKey, providedFile.mimeType),
+				encFileName: this.cryptoWrapper.encryptString(fileSessionKey, providedFile.name),
+				encMimeType: this.cryptoWrapper.encryptString(fileSessionKey, providedFile.mimeType),
 				referenceTokens: referenceTokens,
-				encCid: providedFile.cid == null ? null : _encryptString(fileSessionKey, providedFile.cid),
+				encCid: providedFile.cid == null ? null : this.cryptoWrapper.encryptString(fileSessionKey, providedFile.cid),
 			}),
 			ownerEncFileSessionKey: ownerEncFileSessionKey.key,
 			ownerKeyVersion: ownerEncFileSessionKey.encryptingKeyVersion.toString(),
@@ -640,7 +647,7 @@ export class MailFacade {
 
 					await this.addRecipientKeyData(bucketKey, sendDraftData, recipients, senderMailGroupId)
 					if (this.isTutaCryptMail(sendDraftData)) {
-						sendDraftData.sessionEncEncryptionAuthStatus = _encryptString(sk, EncryptionAuthStatus.TUTACRYPT_SENDER)
+						sendDraftData.sessionEncEncryptionAuthStatus = this.cryptoWrapper.encryptString(sk, EncryptionAuthStatus.TUTACRYPT_SENDER)
 					}
 				} else {
 					sendDraftData.mailSessionKey = bitArrayToUint8Array(sk)
@@ -788,7 +795,7 @@ export class MailFacade {
 				const passwordKey = await this.loginFacade.deriveUserPassphraseKey({ kdfType, passphrase, salt })
 				const passwordVerifier = createAuthVerifier(passwordKey)
 				const externalGroupKeys = await this.getExternalGroupKeys(recipient.address, kdfType, passwordKey, passwordVerifier)
-				const ownerEncBucketKey = _encryptKeyWithVersionedKey(externalGroupKeys.currentExternalMailGroupKey, bucketKey)
+				const ownerEncBucketKey = this.cryptoWrapper.encryptKeyWithVersionedKey(externalGroupKeys.currentExternalMailGroupKey, bucketKey)
 				const data = createSecureExternalRecipientKeyData({
 					mailAddress: recipient.address,
 					kdfVersion: kdfType,
@@ -968,9 +975,9 @@ export class MailFacade {
 		const externalMailGroupInfoSessionKey = aes256RandomKey()
 		const tutanotaPropertiesSessionKey = aes256RandomKey()
 		const mailboxSessionKey = aes256RandomKey()
-		const externalUserEncEntropy = _encryptBytes(currentExternalUserGroupKey.object, random.generateRandomData(32))
+		const externalUserEncEntropy = this.cryptoWrapper.encryptBytes(currentExternalUserGroupKey.object, random.generateRandomData(32))
 
-		const internalUserEncGroupKey = _encryptKeyWithVersionedKey(internalUserGroupKey, currentExternalUserGroupKey.object)
+		const internalUserEncGroupKey = this.cryptoWrapper.encryptKeyWithVersionedKey(internalUserGroupKey, currentExternalUserGroupKey.object)
 		const userGroupData = createCreateExternalUserGroupData({
 			mailAddress: cleanedMailAddress,
 			externalPwEncUserGroupKey: encryptKey(externalUserPwKey, currentExternalUserGroupKey.object),
@@ -978,15 +985,24 @@ export class MailFacade {
 			internalUserGroupKeyVersion: internalUserEncGroupKey.encryptingKeyVersion.toString(),
 		})
 
-		const externalUserEncUserGroupInfoSessionKey = _encryptKeyWithVersionedKey(currentExternalUserGroupKey, externalUserGroupInfoSessionKey)
-		const externalUserEncMailGroupKey = _encryptKeyWithVersionedKey(currentExternalUserGroupKey, currentExternalMailGroupKey.object)
-		const externalUserEncTutanotaPropertiesSessionKey = _encryptKeyWithVersionedKey(currentExternalUserGroupKey, tutanotaPropertiesSessionKey)
+		const externalUserEncUserGroupInfoSessionKey = this.cryptoWrapper.encryptKeyWithVersionedKey(
+			currentExternalUserGroupKey,
+			externalUserGroupInfoSessionKey,
+		)
+		const externalUserEncMailGroupKey = this.cryptoWrapper.encryptKeyWithVersionedKey(currentExternalUserGroupKey, currentExternalMailGroupKey.object)
+		const externalUserEncTutanotaPropertiesSessionKey = this.cryptoWrapper.encryptKeyWithVersionedKey(
+			currentExternalUserGroupKey,
+			tutanotaPropertiesSessionKey,
+		)
 
-		const externalMailEncMailGroupInfoSessionKey = _encryptKeyWithVersionedKey(currentExternalMailGroupKey, externalMailGroupInfoSessionKey)
-		const externalMailEncMailBoxSessionKey = _encryptKeyWithVersionedKey(currentExternalMailGroupKey, mailboxSessionKey)
+		const externalMailEncMailGroupInfoSessionKey = this.cryptoWrapper.encryptKeyWithVersionedKey(
+			currentExternalMailGroupKey,
+			externalMailGroupInfoSessionKey,
+		)
+		const externalMailEncMailBoxSessionKey = this.cryptoWrapper.encryptKeyWithVersionedKey(currentExternalMailGroupKey, mailboxSessionKey)
 
-		const internalMailEncUserGroupInfoSessionKey = _encryptKeyWithVersionedKey(internalMailGroupKey, externalUserGroupInfoSessionKey)
-		const internalMailEncMailGroupInfoSessionKey = _encryptKeyWithVersionedKey(internalMailGroupKey, externalMailGroupInfoSessionKey)
+		const internalMailEncUserGroupInfoSessionKey = this.cryptoWrapper.encryptKeyWithVersionedKey(internalMailGroupKey, externalUserGroupInfoSessionKey)
+		const internalMailEncMailGroupInfoSessionKey = this.cryptoWrapper.encryptKeyWithVersionedKey(internalMailGroupKey, externalMailGroupInfoSessionKey)
 
 		const externalUserData = createExternalUserData({
 			verifier,
@@ -1123,7 +1139,7 @@ export class MailFacade {
 	async createLabel(mailGroupId: Id, labelData: { name: string; color: string }) {
 		const mailGroupKey = await this.keyLoaderFacade.getCurrentSymGroupKey(mailGroupId)
 		const sk = aes256RandomKey()
-		const ownerEncSessionKey = _encryptKeyWithVersionedKey(mailGroupKey, sk)
+		const ownerEncSessionKey = this.cryptoWrapper.encryptKeyWithVersionedKey(mailGroupKey, sk)
 
 		await this.serviceExecutor.post(
 			ManageLabelService,
@@ -1209,6 +1225,43 @@ export class MailFacade {
 					createClientClassifierResultPostIn({
 						mails,
 						isPredictionMade: isPredictionMade,
+					}),
+				),
+			{ concurrency: 5 },
+		)
+	}
+
+	private async encryptUnencryptedProcessInboxData(mailGroupId: Id, mails: readonly UnencryptedProcessInboxDatum[]): Promise<ProcessInboxDatum[]> {
+		const processInboxData: ProcessInboxDatum[] = []
+		for (const mail of mails) {
+			const mailGroupKey = await this.keyLoaderFacade.getCurrentSymGroupKey(mailGroupId)
+			const sk = aes256RandomKey()
+			const ownerEncSessionKey = this.cryptoWrapper.encryptKeyWithVersionedKey(mailGroupKey, sk)
+			const { targetMoveFolder, classifierType, mailId } = mail
+			processInboxData.push(
+				createProcessInboxDatum({
+					ownerEncVectorSessionKey: ownerEncSessionKey.key,
+					ownerKeyVersion: ownerEncSessionKey.encryptingKeyVersion.toString(),
+					encVector: aesEncrypt(sk, mail.vector),
+					classifierType,
+					mailId,
+					targetMoveFolder,
+				}),
+			)
+		}
+		return processInboxData
+	}
+
+	async processNewMails(mailGroupId: Id, mails: readonly UnencryptedProcessInboxDatum[]) {
+		const processInboxData = await this.encryptUnencryptedProcessInboxData(mailGroupId, mails)
+		await promiseMap(
+			splitInChunks(MAX_NBR_OF_MAILS_SYNC_OPERATION, processInboxData),
+			async (inboxData) =>
+				this.serviceExecutor.post(
+					ProcessInboxService,
+					createProcessInboxPostIn({
+						mailOwnerGroup: mailGroupId,
+						processInboxDatum: inboxData,
 					}),
 				),
 			{ concurrency: 5 },
