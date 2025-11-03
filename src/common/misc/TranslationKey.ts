@@ -2118,3 +2118,5 @@ export type TranslationKeyType =
 	| "pricing.firstYearDiscountIos_msg"
 	| "conflict_label"
 	| "emptyString_msg"
+	| "schedule_action"
+	| "sendOrSchedule_label"
