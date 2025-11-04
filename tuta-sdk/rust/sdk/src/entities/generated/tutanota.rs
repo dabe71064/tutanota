@@ -4155,6 +4155,24 @@ impl Entity for ClientClassifierResultPostIn {
 
 #[derive(uniffi::Record, Clone, Serialize, Deserialize)]
 #[cfg_attr(any(test, feature = "testing"), derive(PartialEq, Debug))]
+pub struct SendDraftDeleteIn {
+	#[serde(rename = "1738")]
+	pub _format: i64,
+	#[serde(rename = "1739")]
+	pub mail: IdTupleGenerated,
+}
+
+impl Entity for SendDraftDeleteIn {
+	fn type_ref() -> TypeRef {
+		TypeRef {
+			app: AppName::Tutanota,
+			type_id: TypeId::from(1737),
+		}
+	}
+}
+
+#[derive(uniffi::Record, Clone, Serialize, Deserialize)]
+#[cfg_attr(any(test, feature = "testing"), derive(PartialEq, Debug))]
 pub struct SendDraftParameters {
 	#[serde(rename = "1741")]
 	pub _id: Option<CustomId>,

@@ -2612,6 +2612,20 @@ export type ClientClassifierResultPostIn = {
 
 	mails: IdTuple[];
 }
+export const SendDraftDeleteInTypeRef: TypeRef<SendDraftDeleteIn> = new TypeRef("tutanota", 1737)
+
+export function createSendDraftDeleteIn(values: StrippedEntity<SendDraftDeleteIn>): SendDraftDeleteIn {
+    return Object.assign(create(typeModels[SendDraftDeleteInTypeRef.typeId], SendDraftDeleteInTypeRef), values)
+}
+
+export type SendDraftDeleteIn = {
+	_type: TypeRef<SendDraftDeleteIn>;
+	_original?: SendDraftDeleteIn
+
+	_format: NumberString;
+
+	mail: IdTuple;
+}
 export const SendDraftParametersTypeRef: TypeRef<SendDraftParameters> = new TypeRef("tutanota", 1740)
 
 export function createSendDraftParameters(values: StrippedEntity<SendDraftParameters>): SendDraftParameters {

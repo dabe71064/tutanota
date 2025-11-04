@@ -64,6 +64,7 @@ import {
 	createResolveConversationsServiceGetIn,
 	createSecureExternalRecipientKeyData,
 	createSendDraftData,
+	createSendDraftDeleteIn,
 	createSendDraftParameters,
 	createSimpleMoveMailPostIn,
 	createUnreadMailStatePostIn,
@@ -653,6 +654,10 @@ export class MailFacade {
 			sendAt,
 		})
 		await this.serviceExecutor.post(SendDraftService, sendDraftData)
+	}
+
+	async unscheduleMail(mail: IdTuple) {
+		await this.serviceExecutor.delete(SendDraftService, createSendDraftDeleteIn({ mail }))
 	}
 
 	async getAttachmentIds(draft: Mail): Promise<IdTuple[]> {

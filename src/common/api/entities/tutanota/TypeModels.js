@@ -9329,6 +9329,39 @@ export const typeModels = {
 			}
 		}
 	},
+	"1737": {
+		"name": "SendDraftDeleteIn",
+		"app": "tutanota",
+		"version": 98,
+		"since": 98,
+		"type": "DATA_TRANSFER_TYPE",
+		"id": 1737,
+		"rootId": "CHR1dGFub3RhAAbJ",
+		"versioned": false,
+		"encrypted": false,
+		"isPublic": true,
+		"values": {
+			"1738": {
+				"final": false,
+				"name": "_format",
+				"id": 1738,
+				"type": "Number",
+				"cardinality": "One",
+				"encrypted": false
+			}
+		},
+		"associations": {
+			"1739": {
+				"final": false,
+				"name": "mail",
+				"id": 1739,
+				"type": "LIST_ELEMENT_ASSOCIATION_GENERATED",
+				"cardinality": "One",
+				"refTypeId": 97,
+				"dependency": null
+			}
+		}
+	},
 	"1740": {
 		"name": "SendDraftParameters",
 		"app": "tutanota",

@@ -51,6 +51,7 @@ use crate::entities::generated::tutanota::ResolveConversationsServiceGetIn;
 use crate::entities::generated::tutanota::ResolveConversationsServiceGetOut;
 use crate::entities::generated::tutanota::SendDraftData;
 use crate::entities::generated::tutanota::SendDraftReturn;
+use crate::entities::generated::tutanota::SendDraftDeleteIn;
 use crate::entities::generated::tutanota::SimpleMoveMailPostIn;
 use crate::entities::generated::tutanota::TranslationGetIn;
 use crate::entities::generated::tutanota::TranslationGetOut;
@@ -210,6 +211,7 @@ pub struct SendDraftService;
 
 crate::service_impl!(declare, SendDraftService, "tutanota/senddraftservice", 98);
 crate::service_impl!(POST, SendDraftService, SendDraftData, SendDraftReturn);
+crate::service_impl!(DELETE, SendDraftService, SendDraftDeleteIn, ());
 
 
 pub struct SimpleMoveMailService;
