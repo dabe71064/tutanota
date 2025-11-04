@@ -64,6 +64,7 @@ import {
 	createResolveConversationsServiceGetIn,
 	createSecureExternalRecipientKeyData,
 	createSendDraftData,
+	createSendDraftParameters,
 	createSimpleMoveMailPostIn,
 	createUnreadMailStatePostIn,
 	createUpdateMailFolderData,
@@ -586,7 +587,7 @@ export class MailFacade {
 	async sendDraft(draft: Mail, recipients: Array<Recipient>, language: string): Promise<void> {
 		const senderMailGroupId = await this._getMailGroupIdForMailAddress(this.userFacade.getLoggedInUser(), draft.sender.address)
 		const bucketKey = aes256RandomKey()
-		const sendDraftData = createSendDraftData({
+		const parameters = createSendDraftParameters({
 			language: language,
 			mail: draft._id,
 			mailSessionKey: null,
@@ -599,6 +600,11 @@ export class MailFacade {
 			secureExternalRecipientKeyData: [],
 			symEncInternalRecipientKeyData: [],
 			sessionEncEncryptionAuthStatus: null,
+		})
+		const sendDraftData = createSendDraftData({
+			...parameters,
+			parameters,
+			sendAt: null,
 		})
 
 		const attachments = await this.getAttachmentIds(draft)
