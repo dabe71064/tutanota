@@ -441,9 +441,11 @@ export class TimeView implements ClassComponent<TimeViewAttributes> {
 
 		const diffFromRangeStartToEventEnd = timeRange.start.diff(Time.fromDate(eventTimeRange.endTime))
 		const eventEndsAfterRange = eventTimeRange.endTime > getStartOfNextDay(baseDate) || diff > 0
-		const end = eventEndsAfterRange ? -1 : Math.ceil(diffFromRangeStartToEventEnd / subRowAsMinutes) + 1
-
-		return { start, end: Math.max(end, start + MIN_ROW_SPAN) }
+		let end = eventEndsAfterRange ? -1 : Math.ceil(diffFromRangeStartToEventEnd / subRowAsMinutes) + 1
+		if (!eventEndsAfterRange) {
+			end = Math.max(end, start + MIN_ROW_SPAN) // Assert events has at least row span of MIN_ROW_SPAN
+		}
+		return { start, end }
 	}
 
 	private renderInteractableCells(
