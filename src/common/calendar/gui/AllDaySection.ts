@@ -14,6 +14,7 @@ import {
 import { eventEndsAfterDay, eventStartsBeforeDay, getTimeZone } from "../date/CalendarUtils"
 import { getRowDateFromMousePos, getTimeFromMousePos } from "../../../calendar-app/calendar/gui/CalendarGuiUtils"
 import { getPosAndBoundsFromMouseEvent } from "../../gui/base/GuiUtils"
+import { isAllDayEvent } from "../../api/common/utils/CommonCalendarUtils"
 
 /**
  * Internal data structure tracking events within a single row.
@@ -76,7 +77,7 @@ export class AllDaySection implements ClassComponent<AllDaySectionAttrs> {
 			return b.event.endTime.getTime() - a.event.endTime.getTime()
 		})
 
-		const rows = this.layoutEvents(orderedEvents, dates)
+		const rows = AllDaySection.layoutEvents(orderedEvents, dates)
 		this.rowCount = rows.length
 
 		return rows.flatMap((rowData, rowIndex) =>
@@ -116,11 +117,11 @@ export class AllDaySection implements ClassComponent<AllDaySectionAttrs> {
 		}
 	}
 
-	private layoutEvents(orderedEvents: EventWrapper[], dates: Date[]): Array<RowData> {
+	static layoutEvents(orderedEvents: EventWrapper[], dates: Date[]): Array<RowData> {
 		// Step 1: Convert events to column-based coordinates
 		const eventsMap = new Map<EventWrapper, ColumnBounds>(
 			orderedEvents.map((wrapper) => {
-				return [wrapper, this.getColumnBounds(wrapper.event, dates)]
+				return [wrapper, AllDaySection.getColumnBounds(wrapper.event, dates)]
 			}),
 		)
 
@@ -156,17 +157,17 @@ export class AllDaySection implements ClassComponent<AllDaySectionAttrs> {
 		return rows
 	}
 
-	private getColumnBounds(event: CalendarEvent, dates: Date[]) {
+	static getColumnBounds(event: CalendarEvent, dates: Date[]) {
 		const eventStartTimeStartOfDay = getStartOfDay(event.startTime).getTime()
 		const eventEndTimeStartOfDay = getStartOfDay(event.endTime).getTime()
 
 		const startDayIndex = dates.findIndex((date) => eventStartTimeStartOfDay <= date.getTime())
 		const endDayIndexReversed = dates.toReversed().findIndex((date) => eventEndTimeStartOfDay > date.getTime())
-		const endDayIndex = dates.length - endDayIndexReversed
+		const endDayIndex = endDayIndexReversed === -1 ? 0 : dates.length - endDayIndexReversed
 
-		const lastColumnCorrection = endDayIndex === dates.length ? 1 : 0
+		const eventTypeCorrection = isAllDayEvent(event) ? 0 : 1
 		const gridStart = startDayIndex + DEFAULT_EVENT_COLUMN_SPAN_SIZE
-		const gridEnd = endDayIndex + DEFAULT_EVENT_COLUMN_SPAN_SIZE + lastColumnCorrection
+		const gridEnd = endDayIndex + DEFAULT_EVENT_COLUMN_SPAN_SIZE + eventTypeCorrection
 		return {
 			start: gridStart,
 			span: gridEnd - gridStart,
