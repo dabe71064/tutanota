@@ -2120,6 +2120,8 @@ export default {
 		"yourMessage_label": "Your message",
 		"zoomIn_action": "Zoom In",
 		"zoomOut_action": "Zoom Out",
+		"ageConfirmationLong_msg": "Thank you. Please also confirm that you are at least 16 years old.",
+		"zoomOut_action": "Zoom Out",
 		"bluesky_label": "Bluesky",
 		"fediverse_label": "Fediverse",
 		"matrix_label": "Matrix"
