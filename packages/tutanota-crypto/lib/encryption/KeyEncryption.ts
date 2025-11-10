@@ -1,6 +1,5 @@
 import type { Aes256Key, AesKey } from "./Aes.js"
-import { aesDecrypt, aesEncrypt, getKeyLengthBytes, KEY_LENGTH_BYTES_AES_128, KEY_LENGTH_BYTES_AES_256, unauthenticatedAesDecrypt } from "./Aes.js"
-import { bitArrayToUint8Array, fixedIv, uint8ArrayToBitArray } from "../misc/Utils.js"
+import { aesDecrypt, aesEncrypt, unauthenticatedAesDecrypt } from "./Aes.js"
 import { assertNotNull, concat, hexToUint8Array, uint8ArrayToHex } from "@tutao/tutanota-utils"
 import { hexToRsaPrivateKey, hexToRsaPublicKey, rsaPrivateKeyToHex } from "./Rsa.js"
 import type { RsaKeyPair, RsaPrivateKey, RsaX25519KeyPair } from "./RsaKeyPair.js"
@@ -8,6 +7,8 @@ import { bytesToKyberPrivateKey, bytesToKyberPublicKey, KyberPrivateKey, kyberPr
 import { X25519PrivateKey } from "./X25519.js"
 import { AsymmetricKeyPair, KeyPairType } from "./AsymmetricKeyPair.js"
 import type { PQKeyPairs } from "./PQKeyPairs.js"
+import { bitArrayToUint8Array, FIXED_IV_HEX, uint8ArrayToBitArray } from "./symmetric/SymmetricCipherUtils"
+import { getAndVerifyAesKeyLength } from "./symmetric/AesKeyLength"
 
 export type EncryptedKeyPairs = EncryptedPqKeyPairs | EncryptedRsaKeyPairs | EncryptedRsaX25519KeyPairs
 
@@ -65,7 +66,7 @@ export function isEncryptedPqKeyPairs(keyPair: AbstractEncryptedKeyPair): keyPai
 export function encryptKey(encryptionKey: AesKey, keyToBeEncrypted: AesKey): Uint8Array {
 	const keyLength = getKeyLengthBytes(encryptionKey)
 	if (keyLength === KEY_LENGTH_BYTES_AES_128) {
-		return aesEncrypt(encryptionKey, bitArrayToUint8Array(keyToBeEncrypted), fixedIv, false, false).slice(fixedIv.length)
+		return aesEncrypt(encryptionKey, bitArrayToUint8Array(keyToBeEncrypted), FIXED_IV_HEX, false, false).slice(FIXED_IV_HEX.length)
 	} else if (keyLength === KEY_LENGTH_BYTES_AES_256) {
 		return aesEncrypt(encryptionKey, bitArrayToUint8Array(keyToBeEncrypted), undefined, false, true)
 	} else {
@@ -76,7 +77,7 @@ export function encryptKey(encryptionKey: AesKey, keyToBeEncrypted: AesKey): Uin
 export function decryptKey(encryptionKey: AesKey, keyToBeDecrypted: Uint8Array): AesKey {
 	const keyLength = getKeyLengthBytes(encryptionKey)
 	if (keyLength === KEY_LENGTH_BYTES_AES_128) {
-		return uint8ArrayToBitArray(aesDecrypt(encryptionKey, concat(fixedIv, keyToBeDecrypted), false))
+		return uint8ArrayToBitArray(aesDecrypt(encryptionKey, concat(FIXED_IV_HEX, keyToBeDecrypted), false))
 	} else if (keyLength === KEY_LENGTH_BYTES_AES_256) {
 		return uint8ArrayToBitArray(aesDecrypt(encryptionKey, keyToBeDecrypted, false))
 	} else {
@@ -87,7 +88,7 @@ export function decryptKey(encryptionKey: AesKey, keyToBeDecrypted: Uint8Array):
 export function aes256DecryptWithRecoveryKey(encryptionKey: Aes256Key, keyToBeDecrypted: Uint8Array): Aes256Key {
 	// legacy case: recovery code without IV/mac
 	if (keyToBeDecrypted.length === KEY_LENGTH_BYTES_AES_128) {
-		return uint8ArrayToBitArray(unauthenticatedAesDecrypt(encryptionKey, concat(fixedIv, keyToBeDecrypted), false))
+		return uint8ArrayToBitArray(unauthenticatedAesDecrypt(encryptionKey, concat(FIXED_IV_HEX, keyToBeDecrypted), false))
 	} else {
 		return decryptKey(encryptionKey, keyToBeDecrypted)
 	}

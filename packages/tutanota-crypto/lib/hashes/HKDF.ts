@@ -1,5 +1,5 @@
 import sjcl from "../internal/sjcl.js"
-import { bitArrayToUint8Array, uint8ArrayToBitArray } from "../misc/Utils.js"
+import { bitArrayToUint8Array, uint8ArrayToBitArray } from "../encryption/symmetric/SymmetricCipherUtils"
 
 /**
  * Derives a key of a defined length from salt, inputKeyMaterial and info.

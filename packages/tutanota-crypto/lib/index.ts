@@ -1,20 +1,17 @@
 export {
-	aes256RandomKey,
 	generateIV,
 	aesEncrypt,
 	aesDecrypt,
 	ENABLE_MAC,
-	IV_BYTE_LENGTH,
 	Aes128Key,
 	Aes256Key,
 	AesKey,
 	aes256EncryptSearchIndexEntry,
 	authenticatedAesDecrypt,
 	unauthenticatedAesDecrypt,
-	KEY_LENGTH_BYTES_AES_256,
-	getKeyLengthBytes,
 	extractIvFromCipherText,
 } from "./encryption/Aes.js"
+export { IV_BYTE_LENGTH, FIXED_IV_HEX } from "./encryption/symmetric/SymmetricCipherUtils.js"
 export {
 	X25519PrivateKey,
 	X25519PublicKey,
@@ -121,21 +118,17 @@ export { sha256Hash } from "./hashes/Sha256.js"
 export { sha512Hash } from "./hashes/Sha512.js"
 export { TotpVerifier } from "./misc/TotpVerifier.js"
 export { TotpSecret } from "./misc/TotpVerifier.js"
-export {
-	BitArray,
-	createAuthVerifier,
-	fixedIv,
-	keyToBase64,
-	base64ToKey,
-	createAuthVerifierAsBase64Url,
-	uint8ArrayToBitArray,
-	padAes,
-	bitArrayToUint8Array,
-	unpadAes,
-	checkIs128BitKey,
-	keyToUint8Array,
-	uint8ArrayToKey,
-} from "./misc/Utils.js"
 export { murmurHash } from "./hashes/MurmurHash.js"
 export { hkdf } from "./hashes/HKDF.js"
 export { hmacSha256, verifyHmacSha256, MacTag } from "./encryption/Hmac.js"
+export { aes256RandomKey } from "./encryption/symmetric/SymmetricCipherUtils"
+export { keyToUint8Array } from "./encryption/symmetric/SymmetricCipherUtils"
+export { uint8ArrayToKey } from "./encryption/symmetric/SymmetricCipherUtils"
+export { base64ToKey } from "./encryption/symmetric/SymmetricCipherUtils"
+export { keyToBase64 } from "./encryption/symmetric/SymmetricCipherUtils"
+export { uint8ArrayToBitArray } from "./encryption/symmetric/SymmetricCipherUtils"
+export { bitArrayToUint8Array } from "./encryption/symmetric/SymmetricCipherUtils"
+export { createAuthVerifierAsBase64Url } from "./encryption/symmetric/SymmetricCipherUtils"
+export { createAuthVerifier } from "./encryption/symmetric/SymmetricCipherUtils"
+export { BitArray } from "./encryption/symmetric/SymmetricCipherUtils"
+export { AesKeyLength, getAndVerifyAesKeyLength } from "./encryption/symmetric/AesKeyLength"

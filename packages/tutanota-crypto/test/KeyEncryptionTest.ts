@@ -2,9 +2,10 @@ import o from "@tutao/otest"
 import { base64ToUint8Array } from "@tutao/tutanota-utils"
 import { aes256DecryptWithRecoveryKey, decryptKey, decryptRsaKey, encryptKey, encryptRsaKey } from "../lib/encryption/KeyEncryption.js"
 import { hexToRsaPrivateKey } from "../lib/encryption/Rsa.js"
-import { bitArrayToUint8Array, fixedIv, uint8ArrayToBitArray } from "../lib/misc/Utils.js"
-import { _aes128RandomKey, aes256RandomKey } from "../lib/encryption/Aes.js"
+import { FIXED_IV_HEX } from "../lib/misc/Utils.js"
+import { _aes128RandomKey } from "../lib/encryption/Aes.js"
 import { aes256EncryptLegacy } from "./AesTest.js"
+import { aes256RandomKey, bitArrayToUint8Array, uint8ArrayToBitArray } from "../lib"
 
 o.spec("key encryption", function () {
 	const rsaPrivateHexKey =
@@ -51,7 +52,7 @@ o.spec("key encryption", function () {
 		const key = _aes128RandomKey()
 		const encryptionKey = aes256RandomKey()
 
-		const encryptedKey = aes256EncryptLegacy(encryptionKey, bitArrayToUint8Array(key), fixedIv, false, false).slice(fixedIv.length)
+		const encryptedKey = aes256EncryptLegacy(encryptionKey, bitArrayToUint8Array(key), FIXED_IV_HEX, false, false).slice(FIXED_IV_HEX.length)
 		const decryptedKey = aes256DecryptWithRecoveryKey(encryptionKey, encryptedKey)
 
 		o(key).deepEquals(decryptedKey)("decrypting sliced, fixed iv aes256 key")

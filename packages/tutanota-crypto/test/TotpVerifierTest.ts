@@ -1,8 +1,8 @@
 import o from "@tutao/otest"
 import { stringToUtf8Uint8Array } from "@tutao/tutanota-utils"
-import { bitArrayToUint8Array } from "../lib/misc/Utils.js"
 import { TotpVerifier } from "../lib/misc/TotpVerifier.js"
 import sjcl from "../lib/internal/sjcl.js"
+import { bitArrayToUint8Array } from "../lib"
 
 o.spec("TotpVerifier", function () {
 	const totp = new TotpVerifier(8)

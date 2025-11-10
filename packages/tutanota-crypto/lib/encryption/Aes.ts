@@ -1,36 +1,20 @@
 import sjcl from "../internal/sjcl.js"
 import { random } from "../random/Randomizer.js"
-import { BitArray, bitArrayToUint8Array, uint8ArrayToBitArray } from "../misc/Utils.js"
 import { assertNotNull, Base64, base64ToUint8Array, concat, uint8ArrayToBase64 } from "@tutao/tutanota-utils"
 import { sha256Hash } from "../hashes/Sha256.js"
 import { CryptoError } from "../misc/CryptoError.js"
 import { sha512Hash } from "../hashes/Sha512.js"
 import { hmacSha256, MacTag, verifyHmacSha256 } from "./Hmac.js"
+import { BitArray, bitArrayToUint8Array, IV_BYTE_LENGTH, uint8ArrayToBitArray } from "./symmetric/SymmetricCipherUtils"
+import { AesKeyLength, getAndVerifyAesKeyLength, getKeyLengthBytes, KEY_LENGTH_BITS_AES_256, KEY_LENGTH_BYTES_AES_128 } from "./symmetric/AesKeyLength"
 
 export const ENABLE_MAC = true
-export const IV_BYTE_LENGTH = 16
-export const KEY_LENGTH_BYTES_AES_256 = 32
-export const KEY_LENGTH_BITS_AES_256 = KEY_LENGTH_BYTES_AES_256 * 8
-export const KEY_LENGTH_BYTES_AES_128 = 16
-const KEY_LENGTH_BITS_AES_128 = KEY_LENGTH_BYTES_AES_128 * 8
 export const MAC_ENABLED_PREFIX = 1
 const MAC_LENGTH_BYTES = 32
 
 export type Aes256Key = BitArray
 export type Aes128Key = BitArray
 export type AesKey = Aes128Key | Aes256Key
-
-/**
- * @return the key length in bytes
- */
-export function getKeyLengthBytes(key: AesKey): number {
-	// stored as an array of 32-bit (4 byte) integers
-	return key.length * 4
-}
-
-export function aes256RandomKey(): Aes256Key {
-	return uint8ArrayToBitArray(random.generateRandomData(KEY_LENGTH_BYTES_AES_256))
-}
 
 export function generateIV(): Uint8Array {
 	return random.generateRandomData(IV_BYTE_LENGTH)
@@ -46,13 +30,13 @@ export function generateIV(): Uint8Array {
  * @return The encrypted bytes
  */
 export function aesEncrypt(key: AesKey, bytes: Uint8Array, iv: Uint8Array = generateIV(), usePadding: boolean = true, useMac: boolean = true) {
-	verifyKeySize(key, [KEY_LENGTH_BITS_AES_128, KEY_LENGTH_BITS_AES_256])
+	const keyLength = getAndVerifyAesKeyLength(key)
 
 	if (iv.length !== IV_BYTE_LENGTH) {
 		throw new CryptoError(`Illegal IV length: ${iv.length} (expected: ${IV_BYTE_LENGTH}): ${uint8ArrayToBase64(iv)} `)
 	}
 
-	if (!useMac && getKeyLengthBytes(key) === KEY_LENGTH_BYTES_AES_256) {
+	if (!useMac && keyLength === AesKeyLength.Aes256) {
 		throw new CryptoError(`Can't use AES-256 without MAC`)
 	}
 
@@ -77,7 +61,7 @@ export function aesEncrypt(key: AesKey, bytes: Uint8Array, iv: Uint8Array = gene
  * @return The encrypted text as words (sjcl internal structure)..
  */
 export function aes256EncryptSearchIndexEntry(key: Aes256Key, bytes: Uint8Array, iv: Uint8Array = generateIV(), usePadding: boolean = true): Uint8Array {
-	verifyKeySize(key, [KEY_LENGTH_BITS_AES_256])
+	getAndVerifyAesKeyLength(key, [KEY_LENGTH_BITS_AES_256])
 
 	if (iv.length !== IV_BYTE_LENGTH) {
 		throw new CryptoError(`Illegal IV length: ${iv.length} (expected: ${IV_BYTE_LENGTH}): ${uint8ArrayToBase64(iv)} `)
@@ -98,11 +82,12 @@ export function aes256EncryptSearchIndexEntry(key: Aes256Key, bytes: Uint8Array,
  * @return The decrypted bytes.
  */
 export function aesDecrypt(key: AesKey, encryptedBytes: Uint8Array, usePadding: boolean = true): Uint8Array {
-	const keyLength = getKeyLengthBytes(key)
-	if (keyLength === KEY_LENGTH_BYTES_AES_128) {
-		return aesDecryptImpl(key, encryptedBytes, usePadding, false)
-	} else {
-		return aesDecryptImpl(key, encryptedBytes, usePadding, true)
+	const keyLength = getAndVerifyAesKeyLength(key)
+	switch (keyLength) {
+		case AesKeyLength.Aes128:
+			return aesDecryptImpl(key, encryptedBytes, usePadding, false)
+		case AesKeyLength.Aes256:
+			return aesDecryptImpl(key, encryptedBytes, usePadding, true)
 	}
 }
 
@@ -140,7 +125,7 @@ export function unauthenticatedAesDecrypt(key: Aes256Key, encryptedBytes: Uint8A
  * @return The decrypted bytes.
  */
 function aesDecryptImpl(key: AesKey, encryptedBytes: Uint8Array, usePadding: boolean, enforceMac: boolean): Uint8Array {
-	verifyKeySize(key, [KEY_LENGTH_BITS_AES_128, KEY_LENGTH_BITS_AES_256])
+	getAndVerifyAesKeyLength(key)
 	const hasMac = encryptedBytes.length % 2 === 1
 	if (enforceMac && !hasMac) {
 		throw new CryptoError("mac expected but not present")
@@ -173,13 +158,6 @@ function aesDecryptImpl(key: AesKey, encryptedBytes: Uint8Array, usePadding: boo
 	}
 }
 
-// visibleForTesting
-export function verifyKeySize(key: AesKey, bitLength: number[]) {
-	if (!bitLength.includes(sjcl.bitArray.bitLength(key))) {
-		throw new CryptoError(`Illegal key length: ${sjcl.bitArray.bitLength(key)} (expected: ${bitLength})`)
-	}
-}
-
 /************************ Legacy AES128 ************************/
 /**
  * @private visible for tests
@@ -198,11 +176,11 @@ export function getAesSubKeys(
 } {
 	if (mac) {
 		let hashedKey: Uint8Array
-		switch (getKeyLengthBytes(key)) {
-			case KEY_LENGTH_BYTES_AES_128:
+		switch (getAndVerifyAesKeyLength(key)) {
+			case AesKeyLength.Aes128:
 				hashedKey = sha256Hash(bitArrayToUint8Array(key))
 				break
-			case KEY_LENGTH_BYTES_AES_256:
+			case AesKeyLength.Aes256:
 				hashedKey = sha512Hash(bitArrayToUint8Array(key))
 				break
 			default:

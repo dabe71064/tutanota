@@ -2,11 +2,11 @@
 import bCrypt from "../internal/bCrypt.js"
 import { random } from "../random/Randomizer.js"
 import { stringToUtf8Uint8Array } from "@tutao/tutanota-utils"
-import { uint8ArrayToBitArray } from "../misc/Utils.js"
 import { KeyLength } from "../misc/Constants.js"
 import { CryptoError } from "../misc/CryptoError.js"
 import { sha256Hash } from "./Sha256.js"
 import { AesKey } from "../encryption/Aes.js"
+import { uint8ArrayToBitArray } from "../encryption/symmetric/SymmetricCipherUtils"
 
 const logRounds = 8 // pbkdf2 number of iterations
 

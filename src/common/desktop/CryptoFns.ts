@@ -2,7 +2,6 @@
  * This is a wrapper for commonly used crypto functions, easier to inject/swap implementations and test.
  */
 import crypto from "node:crypto"
-import type { TypeModel, UntypedInstance } from "../api/common/EntityTypes"
 import type { Base64 } from "@tutao/tutanota-utils"
 import {
 	Aes256Key,
@@ -11,7 +10,6 @@ import {
 	aesEncrypt,
 	AesKey,
 	base64ToKey,
-	BitArray,
 	decryptKey,
 	random,
 	uint8ArrayToKey,
@@ -46,9 +44,9 @@ export interface CryptoFunctions {
 
 	decryptKey(encryptionKey: AesKey, key: Uint8Array): AesKey
 
-	bytesToKey(bytes: Uint8Array): BitArray
+	bytesToKey(bytes: Uint8Array): AesKey
 
-	base64ToKey(base64: Base64): BitArray
+	base64ToKey(base64: Base64): AesKey
 
 	verifySignature(pubKeyPem: string, data: Uint8Array, signature: Uint8Array): boolean
 
@@ -74,11 +72,11 @@ export const cryptoFns: CryptoFunctions = {
 		return decryptKey(encryptionKey, key)
 	},
 
-	bytesToKey(bytes: Uint8Array): BitArray {
+	bytesToKey(bytes: Uint8Array): AesKey {
 		return uint8ArrayToKey(bytes)
 	},
 
-	base64ToKey(base64: Base64): BitArray {
+	base64ToKey(base64: Base64): AesKey {
 		return base64ToKey(base64)
 	},
 

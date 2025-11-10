@@ -13,24 +13,21 @@ import {
 import {
 	_aes128RandomKey,
 	Aes256Key,
-	aes256RandomKey,
 	aesDecrypt,
 	aesEncrypt,
 	AesKey,
 	extractIvFromCipherText,
 	getAesSubKeys,
-	IV_BYTE_LENGTH,
-	KEY_LENGTH_BITS_AES_256,
 	MAC_ENABLED_PREFIX,
 	unauthenticatedAesDecrypt,
-	verifyKeySize,
 } from "../lib/encryption/Aes.js"
-import { base64ToKey, bitArrayToUint8Array, keyToBase64, uint8ArrayToBitArray } from "../lib/misc/Utils.js"
 import { CryptoError } from "../lib/misc/CryptoError.js"
 import { random } from "../lib/random/Randomizer.js"
 import { assertThrows, throwsErrorWithMessage } from "@tutao/tutanota-test-utils"
 import sjcl from "../lib/internal/sjcl.js"
-import { hmacSha256 } from "../lib/index.js"
+import { aes256RandomKey, base64ToKey, bitArrayToUint8Array, hmacSha256, IV_BYTE_LENGTH, keyToBase64 } from "../lib/index.js"
+import { uint8ArrayToBitArray } from "../lib/encryption/symmetric/SymmetricCipherUtils"
+import { getAndVerifyAesKeyLength, KEY_LENGTH_BITS_AES_256 } from "../lib/encryption/symmetric/AesKeyLength"
 
 o.spec("aes", function () {
 	o("encryption roundtrip 128 without mac", () => arrayRoundtrip(aesEncrypt, aesDecrypt, _aes128RandomKey(), false))
@@ -262,7 +259,7 @@ o.spec("aes", function () {
 
 // visibleForTesting
 export function aes256EncryptLegacy(key: Aes256Key, bytes: Uint8Array, iv: Uint8Array, usePadding: boolean = true, useMac: boolean = true): Uint8Array {
-	verifyKeySize(key, [KEY_LENGTH_BITS_AES_256])
+	getAndVerifyAesKeyLength(key, [KEY_LENGTH_BITS_AES_256])
 
 	if (iv.length !== IV_BYTE_LENGTH) {
 		throw new CryptoError(`Illegal IV length: ${iv.length} (expected: ${IV_BYTE_LENGTH}): ${uint8ArrayToBase64(iv)} `)
