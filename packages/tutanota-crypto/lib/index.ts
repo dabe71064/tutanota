@@ -1,17 +1,5 @@
-export {
-	generateIV,
-	aesEncrypt,
-	aesDecrypt,
-	ENABLE_MAC,
-	Aes128Key,
-	Aes256Key,
-	AesKey,
-	aes256EncryptSearchIndexEntry,
-	authenticatedAesDecrypt,
-	unauthenticatedAesDecrypt,
-	extractIvFromCipherText,
-} from "./encryption/Aes.js"
-export { IV_BYTE_LENGTH, FIXED_IV_HEX } from "./encryption/symmetric/SymmetricCipherUtils.js"
+export { generateIV, aesEncrypt, aesDecrypt, aes256EncryptSearchIndexEntry, authenticatedAesDecrypt, unauthenticatedAesDecrypt } from "./encryption/Aes.js"
+export { IV_BYTE_LENGTH, FIXED_IV } from "./encryption/symmetric/SymmetricCipherUtils.js"
 export {
 	X25519PrivateKey,
 	X25519PublicKey,
@@ -132,3 +120,8 @@ export { createAuthVerifierAsBase64Url } from "./encryption/symmetric/SymmetricC
 export { createAuthVerifier } from "./encryption/symmetric/SymmetricCipherUtils"
 export { BitArray } from "./encryption/symmetric/SymmetricCipherUtils"
 export { AesKeyLength, getAndVerifyAesKeyLength } from "./encryption/symmetric/AesKeyLength"
+export { AesKey } from "./encryption/symmetric/SymmetricCipherUtils"
+export { Aes128Key } from "./encryption/symmetric/SymmetricCipherUtils"
+export { Aes256Key } from "./encryption/symmetric/SymmetricCipherUtils"
+export { ENABLE_MAC } from "./encryption/symmetric/SymmetricCipherUtils"
+export { extractIvFromCipherText } from "./encryption/symmetric/SymmetricCipherUtils"

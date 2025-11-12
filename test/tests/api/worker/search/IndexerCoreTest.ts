@@ -21,7 +21,7 @@ import { createSearchIndexDbStub, DbStub, DbStubTransaction } from "./DbStub.js"
 import { IndexerCore } from "../../../../../src/mail-app/workerUtils/index/IndexerCore.js"
 import { elementIdPart, generatedIdToTimestamp, listIdPart, timestampToGeneratedId } from "../../../../../src/common/api/common/utils/EntityUtils.js"
 import { createTestEntity, makeCore } from "../../../TestUtils.js"
-import { Aes256Key, aes256RandomKey, aesEncrypt, FIXED_IV_HEX, IV_BYTE_LENGTH, random, unauthenticatedAesDecrypt } from "@tutao/tutanota-crypto"
+import { Aes256Key, aes256RandomKey, aesEncrypt, FIXED_IV, IV_BYTE_LENGTH, random, unauthenticatedAesDecrypt } from "@tutao/tutanota-crypto"
 import { ElementDataOS, GroupDataOS, ObjectStoreName, SearchIndexMetaDataOS, SearchIndexOS } from "../../../../../src/common/api/worker/search/IndexTables.js"
 import { AttributeModel } from "../../../../../src/common/api/common/AttributeModel"
 import { ClientModelInfo } from "../../../../../src/common/api/common/EntityFunctions"
@@ -66,7 +66,7 @@ o.spec("IndexerCore", () => {
 
 	o.beforeEach(function () {
 		key = aes256RandomKey()
-		iv = FIXED_IV_HEX
+		iv = FIXED_IV
 		encryptionData = { key, iv }
 	})
 
@@ -1109,7 +1109,7 @@ o.spec("IndexerCore", () => {
 		const core = makeCore({
 			encryptionData: {
 				key: aes256RandomKey(),
-				iv: FIXED_IV_HEX,
+				iv: FIXED_IV,
 			},
 			transaction: {
 				createTransaction: () => deferred.promise,

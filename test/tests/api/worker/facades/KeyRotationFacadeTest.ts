@@ -447,7 +447,7 @@ o.spec("KeyRotationFacade", function () {
 	let adminKeyLoader: AdminKeyLoaderFacade
 
 	let user: User
-	const pwKey = uint8ArrayToBitArray(new Uint8Array(Array(KEY_LENGTH_BYTES_AES_256).keys()))
+	const pwKey = uint8ArrayToKey(new Uint8Array(Array(KEY_LENGTH_BYTES_AES_256).keys()))
 	let cryptoWrapperMock: CryptoWrapper
 	let userEncAdminKey: Uint8Array
 	const groupId = someGroupId

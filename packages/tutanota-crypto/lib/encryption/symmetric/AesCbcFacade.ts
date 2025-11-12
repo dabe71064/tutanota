@@ -1,121 +1,109 @@
-package de.tutao.common.crypto.symmetric;
-
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
-import de.tutao.common.crypto.HMacFacade;
-import de.tutao.common.instance.data.InvalidDataFormatException;
-import de.tutao.common.util.ArrayUtils;
-import de.tutao.common.util.EncodingConverter;
-import de.tutao.common.util.NotNullByDefault;
-import de.tutao.common.util.TutaDbException;
-
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-
-import static de.tutao.common.crypto.symmetric.SymmetricCipherUtils.*;
+import { SymmetricCipherVersion, symmetricCipherVersionToUint8Array } from "./SymmetricCipherVersion"
+import {
+	AesKey,
+	bitArrayToUint8Array,
+	FIXED_IV,
+	IV_BYTE_LENGTH,
+	SYMMETRIC_AUTHENTICATION_TAG_LENGTH_BYTES,
+	SYMMETRIC_CIPHER_VERSION_PREFIX_LENGTH_BYTES,
+	uint8ArrayToBitArray,
+} from "./SymmetricCipherUtils"
+import { CryptoError } from "../../misc/CryptoError"
+import { assertNotNull, concat, hexToUint8Array } from "@tutao/tutanota-utils"
+import sjcl from "../../internal/sjcl"
+import { hmacSha256, MacTag, verifyHmacSha256 } from "../Hmac"
+import { SYMMETRIC_KEY_DERIVER, SymmetricKeyDeriver } from "./SymmetricKeyDeriver"
 
 /**
  * This facade provides the implementation for both encryption and decryption of AES in CBC mode. Supports 128 and 256-bit keys.
  * Depending on the cipher version the encryption is authenticated with HMAC-SHA-256.
  * SymmetricCipherFacade is responsible for handling parameters for encryption/decryption.
  */
-@NotNullByDefault
-@Singleton
-public class AesCbcFacade {
-
-	private final SymmetricKeyDeriver symmetricKeyDeriver;
-
-	@Inject
-	public AesCbcFacade(SymmetricKeyDeriver symmetricKeyDeriver) {
-		this.symmetricKeyDeriver = symmetricKeyDeriver;
-	}
+export class AesCbcFacade {
+	constructor(private readonly symmetricKeyDeriver: SymmetricKeyDeriver) {}
 
 	/**
 	 * This should not be called directly! Use SymmetricCipherFacade instead
 	 */
-	byte[] encrypt(SecretKeySpec key,
-				   byte[] plainText,
-				   boolean hasRandomIvToPrepend,
-				   byte[] iv,
-				   boolean padding,
-				   SymmetricCipherVersion cipherVersion) throws InvalidKeyException,
-			InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException {
-		Cipher cipher = Cipher.getInstance((padding) ? AES_ENCRYPTION_MODE_PADDING : AES_ENCRYPTION_MODE_NO_PADDING);
-		IvParameterSpec params = new IvParameterSpec(iv);
+	encrypt(
+		key: AesKey,
+		plainText: Uint8Array,
+		hasRandomIvToPrepend: boolean,
+		iv: Uint8Array,
+		padding: boolean,
+		cipherVersion: SymmetricCipherVersion,
+	): Uint8Array {
+		const subKeys = this.symmetricKeyDeriver.deriveSubKeys(key, cipherVersion)
+		const cipherText = bitArrayToUint8Array(
+			sjcl.mode.cbc.encrypt(new sjcl.cipher.aes(subKeys.encryptionKey), uint8ArrayToBitArray(plainText), uint8ArrayToBitArray(iv), [], padding),
+		)
 
-		var subKeys = symmetricKeyDeriver.deriveSubKeys(key, cipherVersion);
-
-		cipher.init(Cipher.ENCRYPT_MODE, subKeys.encryptionKey(), params);
-		byte[] cipherText = cipher.doFinal(plainText);
-
-		byte[] unauthenticatedCiphertext;
+		let unauthenticatedCiphertext
 		if (hasRandomIvToPrepend) {
 			//version byte is not included into authentication tag for legacy reasons
-			unauthenticatedCiphertext = ArrayUtils.merge(iv, cipherText);
+			unauthenticatedCiphertext = concat(iv, cipherText)
 		} else {
-			unauthenticatedCiphertext = cipherText;
+			unauthenticatedCiphertext = cipherText
 		}
-		return switch (cipherVersion) {
-			case UnusedReservedUnauthenticated -> {
-				yield unauthenticatedCiphertext;
+		switch (cipherVersion) {
+			case SymmetricCipherVersion.UnusedReservedUnauthenticated:
+				return unauthenticatedCiphertext
+			case SymmetricCipherVersion.AesCbcThenHmac: {
+				const authenticationKey = assertNotNull(subKeys.authenticationKey)
+				const authenticationTag = hmacSha256(authenticationKey, unauthenticatedCiphertext)
+				return concat(symmetricCipherVersionToUint8Array(SymmetricCipherVersion.AesCbcThenHmac), unauthenticatedCiphertext, authenticationTag)
 			}
-			case AesCbcThenHmac -> {
-				assert subKeys.authenticationKey() != null;
-				byte[] authenticationTag = HMacFacade.hmac256(subKeys.authenticationKey(), unauthenticatedCiphertext);
-				yield ArrayUtils.merge(SymmetricCipherVersion.AesCbcThenHmac.asBytes(), unauthenticatedCiphertext, authenticationTag);
-			}
-			default -> {
-				throw new RuntimeException("unexpected cipher version " + cipherVersion);
-			}
-		};
+			default:
+				throw new CryptoError("unexpected cipher version " + cipherVersion)
+		}
 	}
 
 	/**
 	 * This should not be called directly! Use SymmetricCipherFacade instead
 	 */
-	byte[] decrypt(SecretKeySpec key, byte[] cipherText, boolean randomIv, boolean padding, SymmetricCipherVersion cipherVersion) {
+	decrypt(key: AesKey, cipherText: Uint8Array, randomIv: boolean, padding: boolean, cipherVersion: SymmetricCipherVersion): Uint8Array {
+		// try {
+		const subKeys = this.symmetricKeyDeriver.deriveSubKeys(key, cipherVersion)
+		let cipherTextWithoutMacAndVersionByte: Uint8Array
+		switch (cipherVersion) {
+			case SymmetricCipherVersion.UnusedReservedUnauthenticated:
+				cipherTextWithoutMacAndVersionByte = cipherText
+				break
+			case SymmetricCipherVersion.AesCbcThenHmac: {
+				const authenticationKey = assertNotNull(subKeys.authenticationKey)
+				cipherTextWithoutMacAndVersionByte = cipherText.subarray(
+					SYMMETRIC_CIPHER_VERSION_PREFIX_LENGTH_BYTES,
+					cipherText.length - SYMMETRIC_AUTHENTICATION_TAG_LENGTH_BYTES,
+				)
+				const providedMacBytes = cipherText.subarray(cipherText.length - SYMMETRIC_AUTHENTICATION_TAG_LENGTH_BYTES, cipherText.length)
+				verifyHmacSha256(authenticationKey, cipherTextWithoutMacAndVersionByte, providedMacBytes as MacTag)
+				break
+			}
+			default:
+				throw new Error("unexpected cipher version " + cipherVersion)
+		}
+		let iv: Uint8Array
+		let aesCbcCiphertext: Uint8Array
+		if (randomIv) {
+			iv = cipherTextWithoutMacAndVersionByte.subarray(0, IV_BYTE_LENGTH)
+			aesCbcCiphertext = cipherTextWithoutMacAndVersionByte.subarray(IV_BYTE_LENGTH, cipherTextWithoutMacAndVersionByte.length)
+		} else {
+			iv = FIXED_IV
+			aesCbcCiphertext = cipherTextWithoutMacAndVersionByte
+		}
 		try {
-			var subKeys = symmetricKeyDeriver.deriveSubKeys(key, cipherVersion);
-			byte[] cipherTextWithoutMacAndVersionByte;
-			switch (cipherVersion) {
-				case UnusedReservedUnauthenticated -> {
-					cipherTextWithoutMacAndVersionByte = cipherText;
-				}
-				case AesCbcThenHmac -> {
-					assert subKeys.authenticationKey() != null;
-					cipherTextWithoutMacAndVersionByte = Arrays.copyOfRange(cipherText, SYMMETRIC_CIPHER_VERSION_PREFIX_LENGTH_BYTES,
-							cipherText.length - SYMMETRIC_AUTHENTICATION_TAG_LENGTH_BYTES);
-					byte[] providedMacBytes = Arrays.copyOfRange(cipherText, cipherText.length - SYMMETRIC_AUTHENTICATION_TAG_LENGTH_BYTES, cipherText.length);
-					HMacFacade.verifyHmacSha256(providedMacBytes, subKeys.authenticationKey(), cipherTextWithoutMacAndVersionByte);
-				}
-				default -> {
-					throw new RuntimeException("unexpected cipher version " + cipherVersion);
-				}
-			}
-			Cipher cipher = Cipher.getInstance((padding) ? AES_ENCRYPTION_MODE_PADDING : AES_ENCRYPTION_MODE_NO_PADDING);
-			byte[] iv;
-			byte[] aesCbcCiphertext;
-			if (randomIv) {
-				iv = Arrays.copyOfRange(cipherTextWithoutMacAndVersionByte, 0, IV_LENGTH_BYTES);
-				aesCbcCiphertext = Arrays.copyOfRange(cipherTextWithoutMacAndVersionByte, IV_LENGTH_BYTES, cipherTextWithoutMacAndVersionByte.length);
-			} else {
-				iv = EncodingConverter.hexToBytes(FIXED_IV_HEX);
-				aesCbcCiphertext = cipherTextWithoutMacAndVersionByte;
-			}
-			IvParameterSpec params = new IvParameterSpec(iv);
-			cipher.init(Cipher.DECRYPT_MODE, subKeys.encryptionKey(), params);
-			return cipher.doFinal(aesCbcCiphertext);
-		} catch (InvalidKeyException | IllegalBlockSizeException | BadPaddingException | NoSuchAlgorithmException | NoSuchPaddingException
-				 | InvalidAlgorithmParameterException | InvalidDataFormatException e) {
-			throw new TutaDbException(e);
+			return bitArrayToUint8Array(
+				sjcl.mode.cbc.decrypt(
+					new sjcl.cipher.aes(subKeys.encryptionKey),
+					uint8ArrayToBitArray(aesCbcCiphertext),
+					uint8ArrayToBitArray(iv),
+					[],
+					padding,
+				),
+			)
+		} catch (e) {
+			throw new CryptoError("aes decryption failed", e as Error)
 		}
 	}
 }
+export const AES_CBC_FACADE = new AesCbcFacade(SYMMETRIC_KEY_DERIVER)

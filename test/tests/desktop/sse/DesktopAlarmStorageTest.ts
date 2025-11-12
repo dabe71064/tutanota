@@ -9,7 +9,7 @@ import { DesktopConfigKey } from "../../../../src/common/desktop/config/ConfigKe
 import { assertNotNull, uint8ArrayToBase64 } from "@tutao/tutanota-utils"
 import { InstancePipeline } from "../../../../src/common/api/worker/crypto/InstancePipeline"
 import { TypeModelResolver } from "../../../../src/common/api/common/EntityFunctions"
-import { aes256RandomKey, bitArrayToUint8Array, encryptKey, uint8ArrayToBitArray } from "@tutao/tutanota-crypto"
+import { aes256RandomKey, encryptKey, uint8ArrayToBitArray } from "@tutao/tutanota-crypto"
 import {
 	AlarmInfoTypeRef,
 	AlarmNotificationTypeRef,
@@ -85,7 +85,7 @@ o.spec("DesktopAlarmStorageTest", function () {
 		const pushIdentifierSessionEncSessionKey = encryptKey(pushSessionKey, notificationSessionKey)
 
 		const desktopStorage: DesktopAlarmStorage = new DesktopAlarmStorage(confMock, cryptoMock, keyStoreFacade, instancePipeline, typeModelResolver)
-		await desktopStorage.storePushIdentifierSessionKey("fourId", bitArrayToUint8Array(pushSessionKey))
+		await desktopStorage.storePushIdentifierSessionKey("fourId", keyToUint8Array(pushSessionKey))
 		const pushIdentifier: IdTuple = ["threeId", "fourId"]
 		const pushIdentifierSessionKey = await desktopStorage.getPushIdentifierSessionKey(pushIdentifier)
 		o(Array.from(assertNotNull(pushIdentifierSessionKey))).deepEquals(pushSessionKey)
@@ -122,7 +122,7 @@ o.spec("DesktopAlarmStorageTest", function () {
 		const newPushSessionKey = aes256RandomKey()
 		const newPushIdentifierSessionEncSessionKey = encryptKey(newPushSessionKey, newNotificationSessionKey)
 
-		await desktopStorage.storePushIdentifierSessionKey("fiveId", bitArrayToUint8Array(newPushSessionKey))
+		await desktopStorage.storePushIdentifierSessionKey("fiveId", keyToUint8Array(newPushSessionKey))
 		const newPushIdentifier: IdTuple = ["threeId", "fiveId"]
 		const newPushIdentifierSessionKey = await desktopStorage.getPushIdentifierSessionKey(newPushIdentifier)
 		o(Array.from(assertNotNull(newPushIdentifierSessionKey))).deepEquals(newPushSessionKey)

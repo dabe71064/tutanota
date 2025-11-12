@@ -2,7 +2,7 @@
 import sjcl from "../internal/sjcl.js"
 import { hexToUint8Array } from "@tutao/tutanota-utils"
 import { random } from "../random/Randomizer.js"
-import { bitArrayToUint8Array, uint8ArrayToBitArray } from "../encryption/symmetric/SymmetricCipherUtils"
+import { bitArrayToUint8Array, uint8ArrayToBitArray, uint8ArrayToKey } from "../encryption/symmetric/SymmetricCipherUtils"
 
 export let DIGITS: number = 6
 export type Base32 = string
@@ -57,13 +57,13 @@ export class TotpVerifier {
 	}
 
 	hmac_sha(key: Uint8Array, text: Uint8Array): Uint8Array {
-		let hmac = new sjcl.misc.hmac(uint8ArrayToBitArray(key), sjcl.hash.sha1)
+		let hmac = new sjcl.misc.hmac(uint8ArrayToKey(key), sjcl.hash.sha1)
 		return bitArrayToUint8Array(hmac.encrypt(uint8ArrayToBitArray(text)))
 	}
 
 	static readableKey(key: Uint8Array): Base32 {
 		return base32
-			.fromBits(uint8ArrayToBitArray(key))
+			.fromBits(uint8ArrayToKey(key))
 			.toLowerCase()
 			.replace(/(.{4})/g, "$1 ")
 			.replace(/=/g, "")

@@ -48,10 +48,10 @@ o.spec("DesktopCryptoFacadeTest", () => {
 
 		when(cryptoFnsMock.unauthenticatedAesDecrypt(aes256Key, aes256EncryptedKey, false)).thenReturn(aes256DecryptedKey)
 
-		when(cryptoFnsMock.decryptKey(aes128Key, aes256EncryptedKey)).thenReturn(uint8ArrayToBitArray(aes256DecryptedKey))
+		when(cryptoFnsMock.decryptKey(aes128Key, aes256EncryptedKey)).thenReturn(uint8ArrayToKey(aes256DecryptedKey))
 		when(cryptoFnsMock.bytesToKey(someKey)).thenReturn(aes128Key)
 		when(cryptoFnsMock.randomBytes(matchers.anything())).thenReturn(Buffer.alloc(10, 4))
-		when(cryptoFnsMock.aes256RandomKey()).thenReturn(uint8ArrayToBitArray(Buffer.alloc(32, 1)))
+		when(cryptoFnsMock.aes256RandomKey()).thenReturn(uint8ArrayToKey(Buffer.alloc(32, 1)))
 
 		const fsPromises: typeof import("fs").promises = object()
 		when(fsPromises.readFile(matchers.anything())).thenResolve(data)

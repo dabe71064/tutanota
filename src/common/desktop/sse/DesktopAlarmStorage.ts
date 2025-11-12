@@ -5,7 +5,7 @@ import { DesktopConfigKey } from "../config/ConfigKeys"
 import type { DesktopKeyStoreFacade } from "../DesktopKeyStoreFacade.js"
 import { assertNotNull, Base64, base64ToUint8Array, findAllAndRemove, uint8ArrayToBase64 } from "@tutao/tutanota-utils"
 import { log } from "../DesktopLog"
-import { AesKey, decryptKey, uint8ArrayToBitArray } from "@tutao/tutanota-crypto"
+import { AesKey, base64ToKey, decryptKey, uint8ArrayToBitArray } from "@tutao/tutanota-crypto"
 import { ClientModelUntypedInstance, ServerModelUntypedInstance, UntypedInstance } from "../../api/common/EntityTypes"
 import { AlarmNotification, AlarmNotificationTypeRef, NotificationSessionKey } from "../../api/entities/sys/TypeRefs"
 import { InstancePipeline } from "../../api/worker/crypto/InstancePipeline"
@@ -75,7 +75,7 @@ export class DesktopAlarmStorage {
 		const pushIdentifierId = elementIdPart(pushIdentifier)
 
 		if (this.unencryptedSessionKeys[pushIdentifierId]) {
-			return uint8ArrayToBitArray(base64ToUint8Array(this.unencryptedSessionKeys[pushIdentifierId]))
+			return base64ToKey(this.unencryptedSessionKeys[pushIdentifierId])
 		} else {
 			const keys: Record<string, Base64> = (await this.conf.getVar(DesktopConfigKey.pushEncSessionKeys)) || {}
 			const encryptedSessionKeyFromConf = keys[pushIdentifierId]
@@ -89,7 +89,7 @@ export class DesktopAlarmStorage {
 				const pw = await this.keyStoreFacade.getDeviceKey()
 				const decryptedKey = this.cryptoFacade.unauthenticatedAes256DecryptKey(pw, base64ToUint8Array(encryptedSessionKeyFromConf))
 				this.unencryptedSessionKeys[pushIdentifierId] = uint8ArrayToBase64(decryptedKey)
-				return uint8ArrayToBitArray(decryptedKey)
+				return uint8ArrayToKey(decryptedKey)
 			} catch (e) {
 				console.warn("could not decrypt pushIdentifierSessionKey")
 				return null

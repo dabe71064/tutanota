@@ -1,14 +1,14 @@
-import type { Aes256Key, AesKey } from "./Aes.js"
-import { aesDecrypt, aesEncrypt, unauthenticatedAesDecrypt } from "./Aes.js"
-import { assertNotNull, concat, hexToUint8Array, uint8ArrayToHex } from "@tutao/tutanota-utils"
+import { aesDecrypt, aesEncrypt } from "./Aes.js"
+import { assertNotNull, hexToUint8Array, uint8ArrayToHex } from "@tutao/tutanota-utils"
 import { hexToRsaPrivateKey, hexToRsaPublicKey, rsaPrivateKeyToHex } from "./Rsa.js"
 import type { RsaKeyPair, RsaPrivateKey, RsaX25519KeyPair } from "./RsaKeyPair.js"
 import { bytesToKyberPrivateKey, bytesToKyberPublicKey, KyberPrivateKey, kyberPrivateKeyToBytes } from "./Liboqs/KyberKeyPair.js"
 import { X25519PrivateKey } from "./X25519.js"
 import { AsymmetricKeyPair, KeyPairType } from "./AsymmetricKeyPair.js"
 import type { PQKeyPairs } from "./PQKeyPairs.js"
-import { bitArrayToUint8Array, FIXED_IV_HEX, uint8ArrayToBitArray } from "./symmetric/SymmetricCipherUtils"
-import { getAndVerifyAesKeyLength } from "./symmetric/AesKeyLength"
+import { Aes256Key, AesKey } from "./symmetric/SymmetricCipherUtils"
+import { AesKeyLength, getKeyLengthAsBytes } from "./symmetric/AesKeyLength"
+import { SYMMETRIC_CIPHER_FACADE } from "./symmetric/SymmetricCipherFacade"
 
 export type EncryptedKeyPairs = EncryptedPqKeyPairs | EncryptedRsaKeyPairs | EncryptedRsaX25519KeyPairs
 
@@ -64,31 +64,17 @@ export function isEncryptedPqKeyPairs(keyPair: AbstractEncryptedKeyPair): keyPai
 }
 
 export function encryptKey(encryptionKey: AesKey, keyToBeEncrypted: AesKey): Uint8Array {
-	const keyLength = getKeyLengthBytes(encryptionKey)
-	if (keyLength === KEY_LENGTH_BYTES_AES_128) {
-		return aesEncrypt(encryptionKey, bitArrayToUint8Array(keyToBeEncrypted), FIXED_IV_HEX, false, false).slice(FIXED_IV_HEX.length)
-	} else if (keyLength === KEY_LENGTH_BYTES_AES_256) {
-		return aesEncrypt(encryptionKey, bitArrayToUint8Array(keyToBeEncrypted), undefined, false, true)
-	} else {
-		throw new Error(`invalid AES key length (must be 128-bit or 256-bit, got ${keyLength} bytes instead)`)
-	}
+	return SYMMETRIC_CIPHER_FACADE.encryptKey(encryptionKey, keyToBeEncrypted)
 }
 
 export function decryptKey(encryptionKey: AesKey, keyToBeDecrypted: Uint8Array): AesKey {
-	const keyLength = getKeyLengthBytes(encryptionKey)
-	if (keyLength === KEY_LENGTH_BYTES_AES_128) {
-		return uint8ArrayToBitArray(aesDecrypt(encryptionKey, concat(FIXED_IV_HEX, keyToBeDecrypted), false))
-	} else if (keyLength === KEY_LENGTH_BYTES_AES_256) {
-		return uint8ArrayToBitArray(aesDecrypt(encryptionKey, keyToBeDecrypted, false))
-	} else {
-		throw new Error(`invalid AES key length (must be 128-bit or 256-bit, got ${keyLength} bytes instead)`)
-	}
+	return SYMMETRIC_CIPHER_FACADE.decryptKey(encryptionKey, keyToBeDecrypted)
 }
 
 export function aes256DecryptWithRecoveryKey(encryptionKey: Aes256Key, keyToBeDecrypted: Uint8Array): Aes256Key {
-	// legacy case: recovery code without IV/mac
-	if (keyToBeDecrypted.length === KEY_LENGTH_BYTES_AES_128) {
-		return uint8ArrayToBitArray(unauthenticatedAesDecrypt(encryptionKey, concat(FIXED_IV_HEX, keyToBeDecrypted), false))
+	// legacy case: recovery code without IV/macas
+	if (keyToBeDecrypted.length === getKeyLengthAsBytes(AesKeyLength.Aes128)) {
+		return SYMMETRIC_CIPHER_FACADE.decryptKeyDeprecatedUnauthenticated(encryptionKey, keyToBeDecrypted)
 	} else {
 		return decryptKey(encryptionKey, keyToBeDecrypted)
 	}

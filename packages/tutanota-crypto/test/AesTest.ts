@@ -10,24 +10,27 @@ import {
 	uint8ArrayToHex,
 	utf8Uint8ArrayToString,
 } from "@tutao/tutanota-utils"
-import {
-	_aes128RandomKey,
-	Aes256Key,
-	aesDecrypt,
-	aesEncrypt,
-	AesKey,
-	extractIvFromCipherText,
-	getAesSubKeys,
-	MAC_ENABLED_PREFIX,
-	unauthenticatedAesDecrypt,
-} from "../lib/encryption/Aes.js"
+import { aesDecrypt, aesEncrypt, getAesSubKeys, unauthenticatedAesDecrypt } from "../lib/encryption/Aes.js"
 import { CryptoError } from "../lib/misc/CryptoError.js"
 import { random } from "../lib/random/Randomizer.js"
 import { assertThrows, throwsErrorWithMessage } from "@tutao/tutanota-test-utils"
 import sjcl from "../lib/internal/sjcl.js"
-import { aes256RandomKey, base64ToKey, bitArrayToUint8Array, hmacSha256, IV_BYTE_LENGTH, keyToBase64 } from "../lib/index.js"
-import { uint8ArrayToBitArray } from "../lib/encryption/symmetric/SymmetricCipherUtils"
-import { getAndVerifyAesKeyLength, KEY_LENGTH_BITS_AES_256 } from "../lib/encryption/symmetric/AesKeyLength"
+import {
+	Aes128Key,
+	Aes256Key,
+	aes256RandomKey,
+	AesKey,
+	AesKeyLength,
+	base64ToKey,
+	bitArrayToUint8Array,
+	extractIvFromCipherText,
+	hmacSha256,
+	IV_BYTE_LENGTH,
+	keyToBase64,
+	keyToUint8Array,
+} from "../lib/index.js"
+import { MAC_ENABLED_PREFIX, uint8ArrayToBitArray } from "../lib/encryption/symmetric/SymmetricCipherUtils"
+import { getAndVerifyAesKeyLength, getKeyLengthAsBytes } from "../lib/encryption/symmetric/AesKeyLength"
 
 o.spec("aes", function () {
 	o("encryption roundtrip 128 without mac", () => arrayRoundtrip(aesEncrypt, aesDecrypt, _aes128RandomKey(), false))
@@ -83,11 +86,11 @@ o.spec("aes", function () {
 	}
 
 	function _hexToKey(hex: Hex): Aes256Key {
-		return uint8ArrayToBitArray(hexToUint8Array(hex))
+		return uint8ArrayToKey(hexToUint8Array(hex))
 	}
 
 	function _keyToHex(key: Aes256Key): Hex {
-		return uint8ArrayToHex(bitArrayToUint8Array(key))
+		return uint8ArrayToHex(keyToUint8Array(key))
 	}
 
 	o("encryptWithInvalidKey 128 without mac", () => encryptWithInvalidKey(aesEncrypt, false))
@@ -275,4 +278,8 @@ export function aes256EncryptLegacy(key: Aes256Key, bytes: Uint8Array, iv: Uint8
 	}
 
 	return data
+}
+
+export function _aes128RandomKey(): Aes128Key {
+	return uint8ArrayToBitArray(random.generateRandomData(getKeyLengthAsBytes(AesKeyLength.Aes128)))
 }

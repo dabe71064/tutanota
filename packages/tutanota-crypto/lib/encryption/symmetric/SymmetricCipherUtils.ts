@@ -1,30 +1,26 @@
 import { random } from "../../random/Randomizer"
-import { Aes256Key, AesKey } from "../Aes"
 import { CryptoError } from "../../misc/CryptoError"
-import {
-	Base64,
-	base64ToBase64Url,
-	base64ToUint8Array,
-	Base64Url,
-	uint8ArrayToArrayBuffer,
-	uint8ArrayToBase64
-} from "@tutao/tutanota-utils"
+import { Base64, base64ToBase64Url, base64ToUint8Array, Base64Url, hexToUint8Array, uint8ArrayToArrayBuffer, uint8ArrayToBase64 } from "@tutao/tutanota-utils"
 import { sha256Hash } from "../../hashes/Sha256"
 import sjcl from "../../internal/sjcl"
-import { KEY_LENGTH_BYTES_AES_256 } from "./AesKeyLength"
+import { AesKeyLength, getAndVerifyAesKeyLength, getKeyLengthAsBytes } from "./AesKeyLength"
 
-export const FIXED_IV_HEX = "88888888888888888888888888888888"
-export const  BLOCK_SIZE_BYTES = 16;
-export const IV_BYTE_LENGTH = BLOCK_SIZE_BYTES;
-export const  SYMMETRIC_CIPHER_VERSION_PREFIX_LENGTH_BYTES = 1;
-export const  SYMMETRIC_AUTHENTICATION_TAG_LENGTH_BYTES = 32;
+export const FIXED_IV = hexToUint8Array("88888888888888888888888888888888")
+export const BLOCK_SIZE_BYTES = 16
+export const IV_BYTE_LENGTH = BLOCK_SIZE_BYTES
+export const SYMMETRIC_CIPHER_VERSION_PREFIX_LENGTH_BYTES = 1
+export const SYMMETRIC_AUTHENTICATION_TAG_LENGTH_BYTES = 32
 /**
  * Does not account for padding or the IV, but only the version byte and the authentication tag.
  */
-export const  SYMMETRIC_CIPHER_VERSION_AND_TAG_OVERHEAD_BYTES = SYMMETRIC_AUTHENTICATION_TAG_LENGTH_BYTES + SYMMETRIC_CIPHER_VERSION_PREFIX_LENGTH_BYTES;
-
+export const SYMMETRIC_CIPHER_VERSION_AND_TAG_OVERHEAD_BYTES = SYMMETRIC_AUTHENTICATION_TAG_LENGTH_BYTES + SYMMETRIC_CIPHER_VERSION_PREFIX_LENGTH_BYTES
 
 export type BitArray = number[]
+export const ENABLE_MAC = true
+export const MAC_LENGTH_BYTES = 32
+export type Aes256Key = BitArray
+export type Aes128Key = BitArray
+export type AesKey = Aes128Key | Aes256Key
 
 /**
  * Creates the auth verifier from the password key.
@@ -32,8 +28,7 @@ export type BitArray = number[]
  * @returns The auth verifier
  */
 export function createAuthVerifier(passwordKey: AesKey): Uint8Array {
-	// TODO Compatibility Test
-	return sha256Hash(bitArrayToUint8Array(passwordKey))
+	return sha256Hash(keyToUint8Array(passwordKey))
 }
 
 export function createAuthVerifierAsBase64Url(passwordKey: AesKey): Base64Url {
@@ -75,49 +70,39 @@ export function keyToBase64(key: AesKey): Base64 {
  */
 export function base64ToKey(base64: Base64): AesKey {
 	try {
-		return sjcl.codec.base64.toBits(base64)
+		let key = sjcl.codec.base64.toBits(base64)
+		getAndVerifyAesKeyLength(key)
+		return key
 	} catch (e) {
 		throw new CryptoError("hex to aes key failed", e as Error)
 	}
 }
 
 export function uint8ArrayToKey(array: Uint8Array): AesKey {
-	return base64ToKey(uint8ArrayToBase64(array))
+	let key = uint8ArrayToBitArray(array)
+	getAndVerifyAesKeyLength(key)
+	return key
 }
 
 export function keyToUint8Array(key: BitArray): Uint8Array {
-	return base64ToUint8Array(keyToBase64(key))
+	return bitArrayToUint8Array(key)
 }
 
 /**
-	 * Create a random 256-bit symmetric AES key.
-	 *
-	 * @return The key.
-	 */
-	export function aes256RandomKey(): Aes256Key {
-		return uint8ArrayToBitArray(random.generateRandomData(KEY_LENGTH_BYTES_AES_256))
-	}
+ * Create a random 256-bit symmetric AES key.
+ *
+ * @return The key.
+ */
+export function aes256RandomKey(): Aes256Key {
+	return uint8ArrayToBitArray(random.generateRandomData(getKeyLengthAsBytes(AesKeyLength.Aes256)))
+}
 
-	/**
-	 * Converts the given key to an array of bytes.
-	 *
-	 * @param key The key.
-	 * @return The bytes representation of the key.
-	 */
-	public static byte[] keyToBytes(SecretKeySpec key) {
-		return key.getEncoded();
+export function extractIvFromCipherText(encrypted: Base64): Uint8Array {
+	const encryptedBytes = base64ToUint8Array(encrypted)
+	const hasMac = encryptedBytes.length % 2 === 1
+	const cipherTextWithoutMac = hasMac ? encryptedBytes.subarray(1, encryptedBytes.length - MAC_LENGTH_BYTES) : encryptedBytes
+	if (cipherTextWithoutMac.length < IV_BYTE_LENGTH) {
+		throw new CryptoError(`insufficient bytes in cipherTextWithoutMac to extract iv: ${cipherTextWithoutMac.length}`)
 	}
-
-	/**
-	 * Converts the given byte array to a key.
-	 *
-	 * @param key The bytes representation of the key.
-	 * @return The key.
-	 * @throws InvalidKeyException if the key has the wrong length
-	 */
-	public static SecretKeySpec bytesToKey(byte[] key) throws InvalidKeyException {
-		if (key.length != AesKeyLength.Aes128.getKeyLengthBytes() && key.length != AesKeyLength.Aes256.getKeyLengthBytes()) {
-			throw new InvalidKeyException("key length: " + key.length + " (expected: 16 or 32)");
-		}
-		return new SecretKeySpec(key, "AES");
-	}
+	return cipherTextWithoutMac.slice(0, IV_BYTE_LENGTH)
+}

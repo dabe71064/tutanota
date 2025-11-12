@@ -1,59 +1,62 @@
-package de.tutao.common.crypto.symmetric;
-
-import com.google.inject.Singleton;
-import de.tutao.common.crypto.Hkdf;
-import de.tutao.common.crypto.ShaFacade;
-import de.tutao.common.util.ArrayUtils;
-import de.tutao.common.util.NotNullByDefault;
-import de.tutao.common.util.VisibleForTesting;
-
-import javax.annotation.Nullable;
-import javax.crypto.spec.SecretKeySpec;
-import java.util.Arrays;
-
-import static de.tutao.common.crypto.symmetric.AesKeyLength.AES256_KEY_LENGTH_BYTES;
+import { AesKeyLength, getAndVerifyAesKeyLength, getKeyLengthAsBytes } from "./AesKeyLength"
+import { symmetricCipherVersionToUint8Array, SymmetricCipherVersion } from "./SymmetricCipherVersion"
+import { Aes256Key, AesKey, keyToUint8Array, uint8ArrayToKey } from "./SymmetricCipherUtils"
+import { CryptoError } from "../../error"
+import { sha256Hash } from "../../hashes/Sha256"
+import { sha512Hash } from "../../hashes/Sha512"
+import { concat } from "@tutao/tutanota-utils"
+import { hkdf } from "../../hashes/HKDF"
 
 /**
- * This facade derives encryption and authentication keys as needed for the symmetric cipher implementations
- */
-@NotNullByDefault
-@Singleton
-public class SymmetricKeyDeriver {
-	@VisibleForTesting
-	static final String AEAD_KEY_DERIVATION_INFO = "AEAD key splitting";
+ * @private visible for tests
+ * */
+export const AEAD_KEY_DERIVATION_INFO = "AEAD key splitting"
 
-	record SubKeys(SecretKeySpec encryptionKey, @Nullable byte[] authenticationKey) {
-	}
-
-	SubKeys deriveSubKeys(SecretKeySpec key, SymmetricCipherVersion symmetricCipherVersion) {
-		AesKeyLength keyLength = AesKeyLength.get(key);
-		final byte[] keyBytes = SymmetricCipherUtils.keyToBytes(key);
-		return switch (symmetricCipherVersion) {
-			case UnusedReservedUnauthenticated -> {
-				if (keyLength != AesKeyLength.Aes128) {
-					throw new RuntimeException("key length " + keyLength + "is incompatible with cipherVersion " + symmetricCipherVersion);
-				}
-				yield new SubKeys(key, null);
-			}
-			case AesCbcThenHmac -> {
-				byte[] hash = switch (keyLength) {
-					case Aes128 -> ShaFacade.hash(keyBytes);
-					case Aes256 -> ShaFacade.hash512(keyBytes);
-				};
-				var encryptionKey = new SecretKeySpec(Arrays.copyOfRange(hash, 0, keyLength.getKeyLengthBytes()), "AES");
-				var authenticationKey = Arrays.copyOfRange(hash, keyLength.getKeyLengthBytes(), 2 * keyLength.getKeyLengthBytes());
-				yield new SubKeys(encryptionKey, authenticationKey);
-			}
-			case Aead -> {
-				//(EK , AK ) ← HKDF (K , null, "AEAD key splitting"||VAEAD , 2 ∗ 256)
-				var infoWithCipherVersion = ArrayUtils.merge(AEAD_KEY_DERIVATION_INFO.getBytes(), symmetricCipherVersion.asBytes());
-				int outputKeyLength = 2 * AES256_KEY_LENGTH_BYTES;
-				byte[] derivedKeys = Hkdf.hkdf(null, keyBytes, infoWithCipherVersion, outputKeyLength);
-				var encryptionKey = new SecretKeySpec(Arrays.copyOfRange(derivedKeys, 0, AES256_KEY_LENGTH_BYTES), "AES");
-				var authenticationKey = Arrays.copyOfRange(derivedKeys, AES256_KEY_LENGTH_BYTES, outputKeyLength);
-				yield new SubKeys(encryptionKey, authenticationKey);
-			}
-		};
-	}
-
+export type SubKeys = {
+	encryptionKey: AesKey
+	authenticationKey: AesKey | null
 }
+export class SymmetricKeyDeriver {
+	/**
+	 * Derives encryption and authentication keys as needed for the symmetric cipher implementations
+	 */
+	deriveSubKeys(key: AesKey, symmetricCipherVersion: SymmetricCipherVersion): SubKeys {
+		const keyLength = getAndVerifyAesKeyLength(key)
+		const keyBytes = keyToUint8Array(key)
+		switch (symmetricCipherVersion) {
+			case SymmetricCipherVersion.UnusedReservedUnauthenticated:
+				if (keyLength !== AesKeyLength.Aes128) {
+					throw new CryptoError("key length " + keyLength + "is incompatible with cipherVersion " + symmetricCipherVersion)
+				}
+				return { encryptionKey: key, authenticationKey: null }
+			case SymmetricCipherVersion.AesCbcThenHmac: {
+				let hashedKey: Uint8Array
+				switch (keyLength) {
+					case AesKeyLength.Aes128:
+						hashedKey = sha256Hash(keyToUint8Array(key))
+						break
+					case AesKeyLength.Aes256:
+						hashedKey = sha512Hash(keyToUint8Array(key))
+						break
+				}
+				return {
+					encryptionKey: uint8ArrayToKey(hashedKey.subarray(0, getKeyLengthAsBytes(keyLength))),
+					authenticationKey: uint8ArrayToKey(hashedKey.subarray(getKeyLengthAsBytes(keyLength), hashedKey.length)),
+				}
+			}
+			case SymmetricCipherVersion.Aead: {
+				//(EK , AK ) ← HKDF (K , null, "AEAD key splitting"||VAEAD , 2 ∗ 256)
+				const infoWithCipherVersion = concat(Uint8Array.from(AEAD_KEY_DERIVATION_INFO), symmetricCipherVersionToUint8Array(symmetricCipherVersion))
+				const outputKeyLength = 2 * getKeyLengthAsBytes(AesKeyLength.Aes256)
+				const derivedKeys = hkdf(null, keyBytes, infoWithCipherVersion, outputKeyLength)
+				const encryptionKey: Aes256Key = uint8ArrayToKey(derivedKeys.subarray(0, getKeyLengthAsBytes(AesKeyLength.Aes256)))
+				const authenticationKey: Aes256Key = uint8ArrayToKey(derivedKeys.subarray(getKeyLengthAsBytes(AesKeyLength.Aes256), outputKeyLength))
+				return { encryptionKey, authenticationKey }
+			}
+			default:
+				throw new Error(`unexpected cipher version ${symmetricCipherVersion}`)
+		}
+	}
+}
+
+export const SYMMETRIC_KEY_DERIVER = new SymmetricKeyDeriver()

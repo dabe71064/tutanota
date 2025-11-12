@@ -41,6 +41,6 @@ export class NativeArgon2idFacade implements Argon2idFacade {
 
 	async generateKeyFromPassphrase(passphrase: string, salt: Uint8Array): Promise<Aes256Key> {
 		const hash = await this.nativeCryptoFacade.argon2idGeneratePassphraseKey(passphrase, salt)
-		return uint8ArrayToBitArray(hash)
+		return uint8ArrayToKey(hash)
 	}
 }

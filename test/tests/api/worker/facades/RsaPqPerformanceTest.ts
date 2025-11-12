@@ -1,7 +1,6 @@
 import o from "@tutao/otest"
 import {
 	aes256RandomKey,
-	bitArrayToUint8Array,
 	generateX25519KeyPair,
 	hexToRsaPrivateKey,
 	hexToRsaPublicKey,
@@ -35,7 +34,7 @@ o.spec("RsaPqPerformanceTest", function () {
 		o("pq", async function () {
 			const kyberFacade = new WASMKyberFacade(await loadLibOQSWASM())
 			const pqFacade: PQFacade = new PQFacade(kyberFacade)
-			const bucketKey = bitArrayToUint8Array(aes256RandomKey())
+			const bucketKey = keyToUint8Array(aes256RandomKey())
 
 			const senderIdentityKeyPair = generateX25519KeyPair()
 			const recipientKeys = await pqFacade.generateKeyPairs()
@@ -60,7 +59,7 @@ o.spec("RsaPqPerformanceTest", function () {
 		})
 
 		o("rsa", async function () {
-			const bucketKey = bitArrayToUint8Array(aes256RandomKey())
+			const bucketKey = keyToUint8Array(aes256RandomKey())
 
 			const keyPair = RSA_TEST_KEYPAIR
 			let seed = new Uint8Array(32)

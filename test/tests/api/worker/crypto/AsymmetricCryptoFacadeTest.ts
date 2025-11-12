@@ -15,7 +15,6 @@ import { CryptoError } from "@tutao/tutanota-crypto/error.js"
 import { RSA_TEST_KEYPAIR } from "../facades/RsaPqPerformanceTest.js"
 import {
 	AesKey,
-	bitArrayToUint8Array,
 	KeyPairType,
 	KyberPublicKey,
 	PQKeyPairs,
@@ -418,7 +417,7 @@ o.spec("AsymmetricCryptoFacadeTest", function () {
 			when(
 				rsa.encrypt(
 					matchers.argThat((arg) => arg.keyPairType === KeyPairType.RSA),
-					bitArrayToUint8Array(symKey),
+					keyToUint8Array(symKey),
 				),
 			).thenResolve(pubEncSymKeyBytes)
 

@@ -69,7 +69,6 @@ import { checkKeyVersionConstraints, KeyLoaderFacade, parseKeyVersion } from "./
 import {
 	Aes256Key,
 	AesKey,
-	bitArrayToUint8Array,
 	createAuthVerifier,
 	EncryptedPqKeyPairs,
 	getKeyLengthBytes,
@@ -746,7 +745,7 @@ export class KeyRotationFacade {
 						symKeyMac: null,
 					})
 					const groupKeyUpdateData = createGroupKeyUpdateData({
-						sessionKeyEncGroupKey: this.cryptoWrapper.encryptBytes(sessionKey, bitArrayToUint8Array(newGroupKey.object)),
+						sessionKeyEncGroupKey: this.cryptoWrapper.encryptBytes(sessionKey, keyToUint8Array(newGroupKey.object)),
 						sessionKeyEncGroupKeyVersion: String(newGroupKey.version),
 						bucketKeyEncSessionKey: this.cryptoWrapper.encryptKey(bucketKey, sessionKey),
 						pubEncBucketKeyData: pubEncKeyData,

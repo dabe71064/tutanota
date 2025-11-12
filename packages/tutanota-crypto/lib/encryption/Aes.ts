@@ -1,24 +1,19 @@
 import sjcl from "../internal/sjcl.js"
-import { random } from "../random/Randomizer.js"
-import { assertNotNull, Base64, base64ToUint8Array, concat, uint8ArrayToBase64 } from "@tutao/tutanota-utils"
-import { sha256Hash } from "../hashes/Sha256.js"
+import { assertNotNull, concat, uint8ArrayToBase64 } from "@tutao/tutanota-utils"
 import { CryptoError } from "../misc/CryptoError.js"
-import { sha512Hash } from "../hashes/Sha512.js"
 import { hmacSha256, MacTag, verifyHmacSha256 } from "./Hmac.js"
-import { BitArray, bitArrayToUint8Array, IV_BYTE_LENGTH, uint8ArrayToBitArray } from "./symmetric/SymmetricCipherUtils"
-import { AesKeyLength, getAndVerifyAesKeyLength, getKeyLengthBytes, KEY_LENGTH_BITS_AES_256, KEY_LENGTH_BYTES_AES_128 } from "./symmetric/AesKeyLength"
-
-export const ENABLE_MAC = true
-export const MAC_ENABLED_PREFIX = 1
-const MAC_LENGTH_BYTES = 32
-
-export type Aes256Key = BitArray
-export type Aes128Key = BitArray
-export type AesKey = Aes128Key | Aes256Key
-
-export function generateIV(): Uint8Array {
-	return random.generateRandomData(IV_BYTE_LENGTH)
-}
+import {
+	Aes256Key,
+	AesKey,
+	bitArrayToUint8Array,
+	IV_BYTE_LENGTH,
+	keyToUint8Array,
+	MAC_LENGTH_BYTES,
+	uint8ArrayToBitArray,
+} from "./symmetric/SymmetricCipherUtils"
+import { AesKeyLength, getAndVerifyAesKeyLength } from "./symmetric/AesKeyLength"
+import { SYMMETRIC_CIPHER_FACADE } from "./symmetric/SymmetricCipherFacade"
+import { Type } from "cborg"
 
 /**
  * Encrypts bytes with AES128 or AES256 in CBC mode.
@@ -61,7 +56,7 @@ export function aesEncrypt(key: AesKey, bytes: Uint8Array, iv: Uint8Array = gene
  * @return The encrypted text as words (sjcl internal structure)..
  */
 export function aes256EncryptSearchIndexEntry(key: Aes256Key, bytes: Uint8Array, iv: Uint8Array = generateIV(), usePadding: boolean = true): Uint8Array {
-	getAndVerifyAesKeyLength(key, [KEY_LENGTH_BITS_AES_256])
+	getAndVerifyAesKeyLength(key, [AesKeyLength.Aes256])
 
 	if (iv.length !== IV_BYTE_LENGTH) {
 		throw new CryptoError(`Illegal IV length: ${iv.length} (expected: ${IV_BYTE_LENGTH}): ${uint8ArrayToBase64(iv)} `)
@@ -69,7 +64,7 @@ export function aes256EncryptSearchIndexEntry(key: Aes256Key, bytes: Uint8Array,
 
 	let subKeys = getAesSubKeys(key, false)
 	let encryptedBits = sjcl.mode.cbc.encrypt(new sjcl.cipher.aes(subKeys.cKey), uint8ArrayToBitArray(bytes), uint8ArrayToBitArray(iv), [], usePadding)
-	let data = concat(iv, bitArrayToUint8Array(encryptedBits))
+	let data = concat(iv, keyToUint8Array(encryptedBits))
 
 	return data
 }
@@ -82,13 +77,14 @@ export function aes256EncryptSearchIndexEntry(key: Aes256Key, bytes: Uint8Array,
  * @return The decrypted bytes.
  */
 export function aesDecrypt(key: AesKey, encryptedBytes: Uint8Array, usePadding: boolean = true): Uint8Array {
-	const keyLength = getAndVerifyAesKeyLength(key)
-	switch (keyLength) {
-		case AesKeyLength.Aes128:
-			return aesDecryptImpl(key, encryptedBytes, usePadding, false)
-		case AesKeyLength.Aes256:
-			return aesDecryptImpl(key, encryptedBytes, usePadding, true)
-	}
+	// const keyLength = getAndVerifyAesKeyLength(key)
+	// switch (keyLength) {
+	// 	case AesKeyLength.Aes128:
+	// 		return aesDecryptImpl(key, encryptedBytes, usePadding, false)
+	// 	case AesKeyLength.Aes256:
+	// 		return aesDecryptImpl(key, encryptedBytes, usePadding, true)
+	// }
+	return usePadding ? SYMMETRIC_CIPHER_FACADE.decryptBytes(key, encryptedBytes) : keyToUint8Array(SYMMETRIC_CIPHER_FACADE.decryptKey(key, encryptedBytes))
 }
 
 /**
@@ -110,9 +106,12 @@ export function authenticatedAesDecrypt(key: AesKey, encryptedBytes: Uint8Array,
  * @param encryptedBytes The ciphertext encoded as bytes.
  * @param usePadding If true, padding is used, otherwise no padding is used and the encrypted data must have the key size.
  * @return The decrypted bytes.
+ * @deprecated
  */
 export function unauthenticatedAesDecrypt(key: Aes256Key, encryptedBytes: Uint8Array, usePadding: boolean = true): Uint8Array {
-	return aesDecryptImpl(key, encryptedBytes, usePadding, false)
+	return usePadding
+		? SYMMETRIC_CIPHER_FACADE.decryptBytesDeprecatedUnauthenticated(key, encryptedBytes)
+		: keyToUint8Array(SYMMETRIC_CIPHER_FACADE.decryptKeyDeprecatedUnauthenticated(key, encryptedBytes))
 }
 
 /**
@@ -152,58 +151,8 @@ function aesDecryptImpl(key: AesKey, encryptedBytes: Uint8Array, usePadding: boo
 
 	try {
 		const decrypted = sjcl.mode.cbc.decrypt(new sjcl.cipher.aes(subKeys.cKey), uint8ArrayToBitArray(ciphertext), uint8ArrayToBitArray(iv), [], usePadding)
-		return new Uint8Array(bitArrayToUint8Array(decrypted))
+		return bitArrayToUint8Array(decrypted)
 	} catch (e) {
 		throw new CryptoError("aes decryption failed", e as Error)
 	}
-}
-
-/************************ Legacy AES128 ************************/
-/**
- * @private visible for tests
- * @deprecated
- * */
-export function _aes128RandomKey(): Aes128Key {
-	return uint8ArrayToBitArray(random.generateRandomData(KEY_LENGTH_BYTES_AES_128))
-}
-
-export function getAesSubKeys(
-	key: AesKey,
-	mac: boolean,
-): {
-	mKey: AesKey | null | undefined
-	cKey: AesKey
-} {
-	if (mac) {
-		let hashedKey: Uint8Array
-		switch (getAndVerifyAesKeyLength(key)) {
-			case AesKeyLength.Aes128:
-				hashedKey = sha256Hash(bitArrayToUint8Array(key))
-				break
-			case AesKeyLength.Aes256:
-				hashedKey = sha512Hash(bitArrayToUint8Array(key))
-				break
-			default:
-				throw new Error(`unexpected key length ${getKeyLengthBytes(key)}`)
-		}
-		return {
-			cKey: uint8ArrayToBitArray(hashedKey.subarray(0, hashedKey.length / 2)),
-			mKey: uint8ArrayToBitArray(hashedKey.subarray(hashedKey.length / 2, hashedKey.length)),
-		}
-	} else {
-		return {
-			cKey: key,
-			mKey: null,
-		}
-	}
-}
-
-export function extractIvFromCipherText(encrypted: Base64): Uint8Array {
-	const encryptedBytes = base64ToUint8Array(encrypted)
-	const hasMac = encryptedBytes.length % 2 === 1
-	const cipherTextWithoutMac = hasMac ? encryptedBytes.subarray(1, encryptedBytes.length - MAC_LENGTH_BYTES) : encryptedBytes
-	if (cipherTextWithoutMac.length < IV_BYTE_LENGTH) {
-		throw new CryptoError(`insufficient bytes in cipherTextWithoutMac to extract iv: ${cipherTextWithoutMac.length}`)
-	}
-	return cipherTextWithoutMac.slice(0, IV_BYTE_LENGTH)
 }

@@ -2,13 +2,13 @@ import { assertWorkerOrNode } from "../../common/Env"
 import {
 	AesKey,
 	AsymmetricKeyPair,
-	bitArrayToUint8Array,
 	isPqKeyPairs,
 	isRsaOrRsaX25519KeyPair,
 	isRsaX25519KeyPair,
 	isVersionedPqPublicKey,
 	isVersionedRsaOrRsaX25519PublicKey,
 	isVersionedRsaX25519PublicKey,
+	keyToUint8Array,
 	PQPublicKeys,
 	PublicKey,
 	RsaPrivateKey,
@@ -26,7 +26,7 @@ import {
 	EncryptionKeyVerificationState,
 	PresentableKeyVerificationState,
 } from "../../common/TutanotaConstants.js"
-import { arrayEquals, assertNotNull, lazy, Versioned } from "@tutao/tutanota-utils"
+import { arrayEquals, assertNotNull, KeyVersion, lazy, Versioned } from "@tutao/tutanota-utils"
 import { KeyLoaderFacade, parseKeyVersion } from "../facades/KeyLoaderFacade.js"
 import { ProgrammingError } from "../../common/error/ProgrammingError.js"
 import { createPublicKeyPutIn, PubEncKeyData } from "../../entities/sys/TypeRefs.js"
@@ -34,7 +34,6 @@ import { CryptoWrapper } from "./CryptoWrapper.js"
 import { PublicKeyService } from "../../entities/sys/Services.js"
 import { IServiceExecutor } from "../../common/ServiceRequest.js"
 import { PublicEncryptionKeyProvider, PublicKeyIdentifier } from "../facades/PublicEncryptionKeyProvider.js"
-import { KeyVersion } from "@tutao/tutanota-utils"
 import { TypeId } from "../../common/EntityTypes"
 import { Category, syncMetrics } from "../utils/SyncMetrics"
 import { KeyVerificationMismatchError } from "../../common/error/KeyVerificationMismatchError"
@@ -179,7 +178,7 @@ export class AsymmetricCryptoFacade {
 				const privateKey: RsaPrivateKey = recipientKeyPair.privateKey
 				const decryptedSymKey = await this.rsa.decrypt(privateKey, pubEncSymKey)
 				return {
-					decryptedAesKey: uint8ArrayToBitArray(decryptedSymKey),
+					decryptedAesKey: uint8ArrayToKey(decryptedSymKey),
 					senderIdentityPubKey: null,
 				}
 			}
@@ -189,7 +188,7 @@ export class AsymmetricCryptoFacade {
 				}
 				const { decryptedSymKeyBytes, senderIdentityPubKey } = await this.pqFacade.decapsulateEncoded(pubEncSymKey, recipientKeyPair)
 				return {
-					decryptedAesKey: uint8ArrayToBitArray(decryptedSymKeyBytes),
+					decryptedAesKey: uint8ArrayToKey(decryptedSymKeyBytes),
 					senderIdentityPubKey,
 				}
 			}
@@ -232,7 +231,7 @@ export class AsymmetricCryptoFacade {
 				version: senderKeyPair.version,
 			})
 		} else if (isVersionedRsaOrRsaX25519PublicKey(recipientPublicKey)) {
-			const pubEncSymKeyBytes = await this.rsa.encrypt(recipientPublicKey.object, bitArrayToUint8Array(symKey))
+			const pubEncSymKeyBytes = await this.rsa.encrypt(recipientPublicKey.object, keyToUint8Array(symKey))
 			return {
 				pubEncSymKeyBytes,
 				cryptoProtocolVersion: CryptoProtocolVersion.RSA,
@@ -267,7 +266,7 @@ export class AsymmetricCryptoFacade {
 			senderEccKeyPair.object,
 			ephemeralKeyPair,
 			recipientPublicKey.object,
-			bitArrayToUint8Array(symKey),
+			keyToUint8Array(symKey),
 		)
 		const senderKeyVersion = senderEccKeyPair.version
 		return {

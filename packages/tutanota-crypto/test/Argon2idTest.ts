@@ -1,5 +1,5 @@
 import o from "@tutao/otest"
-import { Argon2IDExports, bitArrayToUint8Array, generateRandomSalt } from "../lib/index.js"
+import { Argon2IDExports, generateRandomSalt, keyToUint8Array } from "../lib/index.js"
 import { generateKeyFromPassphrase } from "../lib/hashes/Argon2id/Argon2id.js"
 import { loadWasmModuleFallback, loadWasmModuleFromFile } from "./WebAssemblyTestUtils.js"
 import { $ } from "zx"
@@ -43,9 +43,9 @@ o.spec("Argon2id", function () {
 		o(key2).notDeepEquals(key0)
 		o(key3).notDeepEquals(key0)
 		// test the key length to be 256 bit
-		o(Array.from(bitArrayToUint8Array(key0)).length).equals(32)
-		o(Array.from(bitArrayToUint8Array(key2)).length).equals(32)
-		o(Array.from(bitArrayToUint8Array(key3)).length).equals(32)
+		o(Array.from(keyToUint8Array(key0)).length).equals(32)
+		o(Array.from(keyToUint8Array(key2)).length).equals(32)
+		o(Array.from(keyToUint8Array(key3)).length).equals(32)
 	})
 
 	o("GenerateKeyFromPassphrase - fallback", async function () {
@@ -61,7 +61,7 @@ o.spec("Argon2id", function () {
 		o(key2).notDeepEquals(key0)
 		o(key3).notDeepEquals(key0)
 		// test the key length to be 256 bit
-		o(Array.from(bitArrayToUint8Array(key0)).length).equals(32)
+		o(Array.from(keyToUint8Array(key0)).length).equals(32)
 		o(Array.from(bitArrayToUint8Array(key2)).length).equals(32)
 		o(Array.from(bitArrayToUint8Array(key3)).length).equals(32)
 	})

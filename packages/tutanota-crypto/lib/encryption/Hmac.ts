@@ -1,8 +1,6 @@
-import { AesKey } from "./Aes.js"
 import sjcl from "../internal/sjcl.js"
-import { arrayEquals } from "@tutao/tutanota-utils"
 import { CryptoError } from "../misc/CryptoError.js"
-import { bitArrayToUint8Array, uint8ArrayToBitArray } from "./symmetric/SymmetricCipherUtils"
+import { AesKey, bitArrayToUint8Array, uint8ArrayToBitArray } from "./symmetric/SymmetricCipherUtils"
 
 export type MacTag = Uint8Array & { __brand: "macTag" }
 

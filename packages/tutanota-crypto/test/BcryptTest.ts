@@ -2,7 +2,8 @@ import o from "@tutao/otest"
 import { generateKeyFromPassphrase, generateRandomSalt } from "../lib/hashes/Bcrypt.js"
 import { KeyLength } from "../lib/misc/Constants.js"
 
-import { bitArrayToUint8Array } from "../lib"
+import { keyToUint8Array } from "../lib"
+
 o.spec("Bcrypt", function () {
 	o("GenerateRandomSalt", function () {
 		let salt1 = generateRandomSalt()
@@ -25,9 +26,9 @@ o.spec("Bcrypt", function () {
 		o(key2).notDeepEquals(key0)
 		o(key3).notDeepEquals(key0)
 		// test the key length to be 128 bit
-		o(Array.from(bitArrayToUint8Array(key0)).length).equals(16)
-		o(Array.from(bitArrayToUint8Array(key2)).length).equals(16)
-		o(Array.from(bitArrayToUint8Array(key3)).length).equals(16)
+		o(Array.from(keyToUint8Array(key0)).length).equals(16)
+		o(Array.from(keyToUint8Array(key2)).length).equals(16)
+		o(Array.from(keyToUint8Array(key3)).length).equals(16)
 	})
 	o("CreateKeyFromPassphrase 256", function () {
 		let salt1 = generateRandomSalt()
@@ -41,7 +42,7 @@ o.spec("Bcrypt", function () {
 		o(key2).notDeepEquals(key0)
 		o(key3).notDeepEquals(key0)
 		// test the key length to be 128 bit
-		o(Array.from(bitArrayToUint8Array(key0)).length).equals(32)
+		o(Array.from(keyToUint8Array(key0)).length).equals(32)
 		o(Array.from(bitArrayToUint8Array(key2)).length).equals(32)
 		o(Array.from(bitArrayToUint8Array(key3)).length).equals(32)
 	})

@@ -29,6 +29,6 @@ export function getSymmetricCipherVersion(ciphertext: Uint8Array): SymmetricCiph
 /**
  * Get a byte array of length 1 that holds the provided version byte.
  */
-export function asUint8Array(version: SymmetricCipherVersion): Uint8Array {
+export function symmetricCipherVersionToUint8Array(version: SymmetricCipherVersion): Uint8Array {
 	return Uint8Array.from([version.valueOf()])
 }

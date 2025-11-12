@@ -1,5 +1,5 @@
 import o from "@tutao/otest"
-import { bitArrayToUint8Array, uint8ArrayToBitArray } from "../lib/encryption/symmetric/SymmetricCipherUtils"
+import { bitArrayToUint8Array, uint8ArrayToBitArray } from "../lib"
 
 o.spec("SymmetricCipherUtilsTest", function () {
 	o("bitArrayToUint8Array", function () {

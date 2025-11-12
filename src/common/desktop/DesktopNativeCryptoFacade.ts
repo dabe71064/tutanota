@@ -1,7 +1,7 @@
 import { base64ToBase64Url, base64ToUint8Array, stringToUtf8Uint8Array, uint8ArrayToBase64, utf8Uint8ArrayToString } from "@tutao/tutanota-utils"
 import type { CryptoFunctions } from "./CryptoFns.js"
 import type * as FsModule from "node:fs"
-import { Aes256Key, AesKey, Argon2IDExports, bitArrayToUint8Array, generateKeyFromPassphraseArgon2id } from "@tutao/tutanota-crypto"
+import { Aes256Key, AesKey, Argon2IDExports, generateKeyFromPassphraseArgon2id } from "@tutao/tutanota-crypto"
 import { FileUri } from "../native/common/FileApp.js"
 import path from "node:path"
 import { NativeCryptoFacade } from "../native/common/generatedipc/NativeCryptoFacade.js"
@@ -134,7 +134,7 @@ export class DesktopNativeCryptoFacade implements NativeCryptoFacade {
 
 	async argon2idGeneratePassphraseKey(passphrase: string, salt: Uint8Array): Promise<Uint8Array> {
 		const hash = await generateKeyFromPassphraseArgon2id(await this.argon2, passphrase, salt)
-		return bitArrayToUint8Array(hash)
+		return keyToUint8Array(hash)
 	}
 
 	generateKyberKeypair(seed: Uint8Array): Promise<KyberKeyPair> {

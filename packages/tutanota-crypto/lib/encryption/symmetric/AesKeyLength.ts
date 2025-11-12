@@ -1,5 +1,6 @@
 import { CryptoError } from "../../misc/CryptoError"
-import { AesKey } from "../Aes"
+
+import { AesKey } from "./SymmetricCipherUtils"
 
 export enum AesKeyLength {
 	Aes128 = 128,
