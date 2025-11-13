@@ -31,20 +31,16 @@ export class SymmetricCipherFacade {
 		return this.encrypt(key, bytes, true, SymmetricCipherVersion.AesCbcThenHmac)
 	}
 
-	// /**
-	//  * Encrypts a byte array with AES in CBC mode.
-	//  *
-	//  * Forces encryption without authentication. Only use in backward compatibility tests.
-	//  *
-	//  * @param key   The key to use for the encryption.
-	//  * @param bytes The data to encrypt.
-	//  * @return The encrypted bytes.
-	//  */
-	// @VisibleForTesting
-	// @Deprecated
-	// public byte[] encryptBytesDeprecatedUnauthenticated(SecretKeySpec key, byte[] bytes) {
-	// 	return encrypt(key, bytes, true, SymmetricCipherVersion.UnusedReservedUnauthenticated);
-	// }
+	/**
+	 * Encrypts a byte array with AES in CBC mode.
+	 *
+	 * Forces encryption without authentication. Only use in backward compatibility tests.
+	 *
+	 * @deprecated
+	 */
+	encryptBytesDeprecatedUnauthenticated(key: AesKey, bytes: Uint8Array): Uint8Array {
+		return this.encrypt(key, bytes, true, SymmetricCipherVersion.UnusedReservedUnauthenticated)
+	}
 
 	/**
 	 * Decrypts byte array with AES in CBC mode.

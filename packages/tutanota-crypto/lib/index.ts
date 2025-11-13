@@ -1,4 +1,11 @@
-export { aesEncrypt, aesEncryptWithIv, aesDecrypt, aes256EncryptSearchIndexEntry, unauthenticatedAesDecrypt } from "./encryption/Aes.js"
+export {
+	aesEncrypt,
+	aesEncryptWithIv,
+	aesDecrypt,
+	aes256EncryptSearchIndexEntry,
+	unauthenticatedAesDecrypt,
+	aes256EncryptSearchIndexEntryWithIV,
+} from "./encryption/Aes.js"
 export { IV_BYTE_LENGTH, FIXED_IV } from "./encryption/symmetric/SymmetricCipherUtils.js"
 export {
 	X25519PrivateKey,

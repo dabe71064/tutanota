@@ -1,8 +1,6 @@
-import sjcl from "../internal/sjcl.js"
-import { concat, uint8ArrayToBase64 } from "@tutao/tutanota-utils"
+import { uint8ArrayToBase64 } from "@tutao/tutanota-utils"
 import { CryptoError } from "../misc/CryptoError.js"
-import { Aes256Key, AesKey, IV_BYTE_LENGTH, keyToUint8Array, uint8ArrayToBitArray } from "./symmetric/SymmetricCipherUtils"
-import { AesKeyLength, getAndVerifyAesKeyLength } from "./symmetric/AesKeyLength"
+import { Aes256Key, AesKey, IV_BYTE_LENGTH } from "./symmetric/SymmetricCipherUtils"
 import { SYMMETRIC_CIPHER_FACADE } from "./symmetric/SymmetricCipherFacade"
 
 /**
@@ -29,21 +27,20 @@ export function aesEncryptWithIv(key: AesKey, bytes: Uint8Array, iv: Uint8Array)
  * Encrypts bytes with AES 256 in CBC mode without mac. This is legacy code and should be removed once the index has been migrated.
  * @param key The key to use for the encryption.
  * @param bytes The plain text.
- * @param iv The initialization vector (only to be passed for testing).
  * @return The encrypted text as words (sjcl internal structure)..
  */
-export function aes256EncryptSearchIndexEntry(key: Aes256Key, bytes: Uint8Array, iv: Uint8Array = generateIV()): Uint8Array {
-	getAndVerifyAesKeyLength(key, [AesKeyLength.Aes256])
+export function aes256EncryptSearchIndexEntry(key: Aes256Key, bytes: Uint8Array): Uint8Array {
+	return SYMMETRIC_CIPHER_FACADE.encryptBytesDeprecatedUnauthenticated(key, bytes)
+}
 
+/**
+ *@deprecated
+ */
+export function aes256EncryptSearchIndexEntryWithIV(key: Aes256Key, bytes: Uint8Array, iv: Uint8Array): Uint8Array {
 	if (iv.length !== IV_BYTE_LENGTH) {
 		throw new CryptoError(`Illegal IV length: ${iv.length} (expected: ${IV_BYTE_LENGTH}): ${uint8ArrayToBase64(iv)} `)
 	}
-
-	let subKeys = getAesSubKeys(key, false)
-	let encryptedBits = sjcl.mode.cbc.encrypt(new sjcl.cipher.aes(subKeys.cKey), uint8ArrayToBitArray(bytes), uint8ArrayToBitArray(iv), [], usePadding)
-	let data = concat(iv, keyToUint8Array(encryptedBits))
-
-	return data
+	throw new Error("TODO not implemented")
 }
 
 /**

@@ -1,4 +1,4 @@
-import { aes256EncryptSearchIndexEntry, Aes256Key, unauthenticatedAesDecrypt } from "@tutao/tutanota-crypto"
+import { aes256EncryptSearchIndexEntry, aes256EncryptSearchIndexEntryWithIV, Aes256Key, unauthenticatedAesDecrypt } from "@tutao/tutanota-crypto"
 import { Base64, concat, stringToUtf8Uint8Array, uint8ArrayToBase64, utf8Uint8ArrayToString } from "@tutao/tutanota-utils"
 import type {
 	DecryptedSearchIndexEntry,
@@ -16,7 +16,8 @@ export function encryptIndexKeyBase64(key: Aes256Key, indexKey: string, dbIv: Ui
 }
 
 export function encryptIndexKeyUint8Array(key: Aes256Key, indexKey: string, dbIv: Uint8Array): Uint8Array {
-	return aes256EncryptSearchIndexEntry(key, stringToUtf8Uint8Array(indexKey), dbIv).slice(dbIv.length)
+	//TODO
+	return aes256EncryptSearchIndexEntryWithIV(key, stringToUtf8Uint8Array(indexKey), dbIv).slice(dbIv.length)
 }
 
 export function decryptIndexKey(key: Aes256Key, encIndexKey: Uint8Array, dbIv: Uint8Array): string {
