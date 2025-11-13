@@ -77,7 +77,7 @@ export class DesktopNativeCredentialsFacade implements NativeCredentialsFacade {
 	async setCredentialEncryptionMode(encryptionMode: CredentialEncryptionMode): Promise<void> {
 		assertDesktopEncryptionMode(encryptionMode)
 		const decryptedKey = await this.getOrCreateCredentialEncryptionKey()
-		const encryptedKey = await this.keychainEncryption.encryptUsingKeychain(keyToUint8Array(decryptedKey), encryptionMode)
+		const encryptedKey = await this.keychainEncryption.encrypKeyUsingKeychain(keyToUint8Array(decryptedKey), encryptionMode)
 		this.credentialDb.setCredentialEncryptionMode(encryptionMode)
 		this.credentialDb.setCredentialEncryptionKey(encryptedKey)
 	}
@@ -115,7 +115,7 @@ export class DesktopNativeCredentialsFacade implements NativeCredentialsFacade {
 		} else {
 			const encryptionMode = this.getDesktopCredentialEncryptionMode() ?? CredentialEncryptionMode.DEVICE_LOCK
 			const newKey = keyToUint8Array(this.crypto.generateDeviceKey())
-			const encryptedKey = await this.keychainEncryption.encryptUsingKeychain(newKey, encryptionMode)
+			const encryptedKey = await this.keychainEncryption.encrypKeyUsingKeychain(newKey, encryptionMode)
 			this.credentialDb.setCredentialEncryptionKey(encryptedKey)
 			return uint8ArrayToKey(newKey)
 		}

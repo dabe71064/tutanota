@@ -77,7 +77,7 @@ export class CryptoWrapper {
 	}
 
 	aesEncrypt(key: AesKey, bytes: Uint8Array, usePadding?: boolean): Uint8Array {
-		return aesEncrypt(key, bytes, undefined, usePadding)
+		return aesEncrypt(key, bytes, undefined)
 	}
 
 	decryptKey(encryptionKey: AesKey, key: Uint8Array): AesKey {
@@ -91,7 +91,7 @@ export class CryptoWrapper {
 	encryptEd25519Key(encryptionKey: VersionedKey, privateKey: Ed25519PrivateKey): VersionedEncryptedKey {
 		return {
 			encryptingKeyVersion: encryptionKey.version,
-			key: aesEncrypt(encryptionKey.object, ed25519PrivateKeyToBytes(privateKey), undefined, true),
+			key: aesEncrypt(encryptionKey.object, ed25519PrivateKeyToBytes(privateKey), undefined),
 		}
 	}
 
@@ -202,14 +202,14 @@ function deriveKey({ salt, key, info, length }: { salt: string; key: number[]; i
  @deprecated use the CryptoWrapper instance instead. This function will be hidden in the future
  */
 export function _encryptBytes(sk: AesKey, value: Uint8Array): Uint8Array {
-	return aesEncrypt(sk, value, random.generateRandomData(IV_BYTE_LENGTH), true)
+	return aesEncrypt(sk, value, random.generateRandomData(IV_BYTE_LENGTH))
 }
 
 /**
  @deprecated use the CryptoWrapper instance instead. This function will be hidden in the future
  */
 export function _encryptString(sk: AesKey, value: string): Uint8Array {
-	return aesEncrypt(sk, stringToUtf8Uint8Array(value), random.generateRandomData(IV_BYTE_LENGTH), true)
+	return aesEncrypt(sk, stringToUtf8Uint8Array(value), random.generateRandomData(IV_BYTE_LENGTH))
 }
 
 /**

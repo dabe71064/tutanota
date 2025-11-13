@@ -29,11 +29,11 @@ export class KeychainEncryption {
 		}
 	}
 
-	async encryptUsingKeychain(data: Uint8Array, encryptionMode: DesktopCredentialsMode): Promise<Uint8Array> {
+	async encrypKeyUsingKeychain(key: Uint8Array, encryptionMode: DesktopCredentialsMode): Promise<Uint8Array> {
 		try {
 			assertSupportedEncryptionMode(encryptionMode)
 			const keyChainKey = await this.desktopKeyStoreFacade.getKeyChainKey()
-			const encryptedData = this.crypto.aes256EncryptKey(keyChainKey, data)
+			const encryptedData = this.crypto.aes256EncryptKey(keyChainKey, key)
 			return this.appPassHandler.addAppPassWrapper(encryptedData, encryptionMode)
 		} catch (e) {
 			if (e instanceof CryptoError) {

@@ -11,10 +11,9 @@ import { SYMMETRIC_CIPHER_FACADE } from "./symmetric/SymmetricCipherFacade"
  * @param key The key to use for the encryption.
  * @param bytes The plain text.
  * @param iv The initialization vector.
- * @param usePadding If true, padding is used, otherwise no padding is used and the encrypted data must have the key size.
  * @return The encrypted bytes
  */
-export function aesEncrypt(key: AesKey, bytes: Uint8Array, iv: Uint8Array = generateIV(), usePadding: boolean = true) {
+export function aesEncrypt(key: AesKey, bytes: Uint8Array, iv: Uint8Array = generateIV()) {
 	const keyLength = getAndVerifyAesKeyLength(key)
 
 	if (iv.length !== IV_BYTE_LENGTH) {

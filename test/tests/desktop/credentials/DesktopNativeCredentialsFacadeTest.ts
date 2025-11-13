@@ -171,7 +171,7 @@ o.spec("DesktopNativeCredentialsFacade", () => {
 				when(crypto.aesEncryptBytes(uint8ArrayToBitArray(decCredentialsKey), stringToUtf8Uint8Array(decryptedCredentials1.accessToken))).thenReturn(
 					encryptedCredentials1.accessToken,
 				)
-				when(keychainEncryption.encryptUsingKeychain(decCredentialsKey, CredentialEncryptionMode.DEVICE_LOCK)).thenResolve(encCredentialsKey)
+				when(keychainEncryption.encrypKeyUsingKeychain(decCredentialsKey, CredentialEncryptionMode.DEVICE_LOCK)).thenResolve(encCredentialsKey)
 
 				await facade.store(decryptedCredentials1)
 				verify(credentialsDb.store(encryptedCredentials1))

@@ -26,7 +26,7 @@ o.spec("KeychainEncryption", () => {
 		when(keystore.getKeyChainKey()).thenResolve(keychainKey)
 		when(crypto.aes256EncryptKey(keychainKey, unencryptedData)).thenReturn(encryptedData)
 		when(appPassHandler.addAppPassWrapper(encryptedData, CredentialEncryptionMode.DEVICE_LOCK)).thenResolve(wrappedData)
-		const result = await encryption.encryptUsingKeychain(unencryptedData, CredentialEncryptionMode.DEVICE_LOCK)
+		const result = await encryption.encrypKeyUsingKeychain(unencryptedData, CredentialEncryptionMode.DEVICE_LOCK)
 		o(result).deepEquals(wrappedData)
 	})
 

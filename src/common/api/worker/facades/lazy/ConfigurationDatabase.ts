@@ -38,7 +38,7 @@ type ConfigDb = {
 
 /** @PublicForTesting */
 export async function encryptItem(item: string, key: Aes256Key, iv: Uint8Array): Promise<Uint8Array> {
-	return aesEncrypt(key, stringToUtf8Uint8Array(item), iv, true)
+	return aesEncrypt(key, stringToUtf8Uint8Array(item), iv)
 }
 
 export async function decryptLegacyItem(encryptedAddress: Uint8Array, key: Aes256Key, iv: Uint8Array): Promise<string> {

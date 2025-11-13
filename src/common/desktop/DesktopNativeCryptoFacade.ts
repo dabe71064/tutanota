@@ -97,7 +97,7 @@ export class DesktopNativeCryptoFacade implements NativeCryptoFacade {
 	}
 
 	aes256EncryptKey(encryptionKey: Aes256Key, keyToEncrypt: Uint8Array): Uint8Array {
-		return this.cryptoFns.aesEncrypt(encryptionKey, keyToEncrypt, false)
+		return this.cryptoFns.encryptKey(encryptionKey, keyToEncrypt)
 	}
 
 	aesDecryptBytes(encryptionKey: Aes256Key, data: Uint8Array): Uint8Array {
@@ -105,7 +105,7 @@ export class DesktopNativeCryptoFacade implements NativeCryptoFacade {
 	}
 
 	aesEncryptBytes(encryptionKey: Aes256Key, data: Uint8Array): Uint8Array {
-		return this.cryptoFns.aesEncrypt(encryptionKey, data, true)
+		return this.cryptoFns.aesEncrypt(encryptionKey, data)
 	}
 
 	generateId(byteLength: number): string {

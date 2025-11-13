@@ -11,7 +11,9 @@ import {
 	AesKey,
 	base64ToKey,
 	decryptKey,
+	encryptKey,
 	random,
+	uint8ArrayToBitArray,
 	uint8ArrayToKey,
 	unauthenticatedAesDecrypt,
 } from "@tutao/tutanota-crypto"
@@ -36,7 +38,9 @@ const seed = () => {
 seed()
 
 export interface CryptoFunctions {
-	aesEncrypt(key: AesKey, bytes: Uint8Array, usePadding?: boolean, useMac?: boolean): Uint8Array
+	aesEncrypt(key: AesKey, bytes: Uint8Array): Uint8Array
+
+	encryptKey(key: AesKey, bytes: Uint8Array): Uint8Array
 
 	aesDecrypt(key: AesKey, encryptedBytes: Uint8Array): Uint8Array
 
@@ -56,8 +60,11 @@ export interface CryptoFunctions {
 }
 
 export const cryptoFns: CryptoFunctions = {
-	aesEncrypt(key: AesKey, bytes: Uint8Array, usePadding?: boolean): Uint8Array {
-		return aesEncrypt(key, bytes, undefined, usePadding)
+	aesEncrypt(key: AesKey, bytes: Uint8Array): Uint8Array {
+		return aesEncrypt(key, bytes)
+	},
+	encryptKey(key: AesKey, bytes: Uint8Array): Uint8Array {
+		return encryptKey(key, uint8ArrayToBitArray(bytes))
 	},
 
 	aesDecrypt(key: Aes256Key, encryptedBytes: Uint8Array): Uint8Array {

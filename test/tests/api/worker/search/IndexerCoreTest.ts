@@ -1043,7 +1043,7 @@ o.spec("IndexerCore", () => {
 		const listId = "list-id"
 		const elementData: ElementDataDbRow = [
 			listId,
-			aesEncrypt(key, new Uint8Array([metaRowId, anotherMetaRowId]), random.generateRandomData(IV_BYTE_LENGTH), true),
+			aesEncrypt(key, new Uint8Array([metaRowId, anotherMetaRowId]), random.generateRandomData(IV_BYTE_LENGTH)),
 			groupId,
 		]
 		const otherId = new Uint8Array(16).fill(88)
