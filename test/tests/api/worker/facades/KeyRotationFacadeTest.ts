@@ -421,7 +421,7 @@ function prepareMultiAdminUserKeyRotation(
 
 	when(mocks.cryptoWrapper.deriveKeyWithHkdf(matchers.anything())).thenReturn(adminGroupDistributionKeyPairKey, targetUserGroupKeyAuthKey)
 
-	when(mocks.cryptoWrapper.aesDecrypt(targetUserGroupKeyAuthKey, userEncAdminSymKeyHash.tag, true)).thenReturn(newAdminGroupSymKeyHash)
+	when(mocks.cryptoWrapper.aesDecrypt(targetUserGroupKeyAuthKey, userEncAdminSymKeyHash.tag)).thenReturn(newAdminGroupSymKeyHash)
 
 	when(mocks.cryptoWrapper.encryptKeyWithVersionedKey(NEW_ADMIN_GROUP_KEY, NEW_USER_GROUP_KEY.object)).thenReturn(NEW_ADMIN_GROUP_ENC_NEW_USER_GROUP_KEY)
 	when(mocks.cryptoWrapper.encryptKeyWithVersionedKey(NEW_USER_GROUP_KEY, NEW_ADMIN_GROUP_KEY.object)).thenReturn(NEW_USER_GROUP_ENC_NEW_ADMIN_GROUP_KEY)
@@ -1400,7 +1400,7 @@ o.spec("KeyRotationFacade", function () {
 					when(publicEncryptionKeyProvider.convertFromEncryptedPqKeyPairs(anything(), anything())).thenReturn(generatedAdminKeyPairs.decodedPublicKey)
 
 					when(keyLoaderFacadeMock.getCurrentSymGroupKey(anything())).thenResolve(currentAdminGroupKey)
-					when(cryptoWrapperMock.aesDecrypt(anything(), anything(), anything())).thenThrow(new CryptoError("unable to decrypt"))
+					when(cryptoWrapperMock.aesDecrypt(anything(), anything())).thenThrow(new CryptoError("unable to decrypt"))
 					await assertThrows(CryptoError, async () => await keyRotationFacade.processPendingKeyRotation(pendingKeyRotations, user, PW_KEY))
 				})
 

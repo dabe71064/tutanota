@@ -185,7 +185,7 @@ o.spec("ConfigurationDbTest", function () {
 			verify(transaction.put(ConfigurationMetaDataOS, Metadata.userGroupKeyVersion, currentUserGroupKey.version))
 			const encDbKeyCaptor = matchers.captor()
 			verify(transaction.put(ConfigurationMetaDataOS, Metadata.userEncDbKey, encDbKeyCaptor.capture()))
-			const capturedDbKey = aesDecrypt(currentUserGroupKey.object, encDbKeyCaptor.value, false)
+			const capturedDbKey = aesDecrypt(currentUserGroupKey.object, encDbKeyCaptor.value)
 			o(capturedDbKey).deepEquals(keyToUint8Array(dbKey))
 		})
 

@@ -73,17 +73,11 @@ export function aes256EncryptSearchIndexEntry(key: Aes256Key, bytes: Uint8Array,
  * Decrypts the given words with AES-128/256 in CBC mode (with HMAC-SHA-256 as mac). The mac is enforced for AES-256 but optional for AES-128.
  * @param key The key to use for the decryption.
  * @param encryptedBytes The ciphertext encoded as bytes.
- * @param usePadding If true, padding is used, otherwise no padding is used and the encrypted data must have the key size.
  * @return The decrypted bytes.
  */
-export function aesDecrypt(key: AesKey, encryptedBytes: Uint8Array, usePadding: boolean = true): Uint8Array {
-	// const keyLength = getAndVerifyAesKeyLength(key)
-	// switch (keyLength) {
-	// 	case AesKeyLength.Aes128:
-	// 		return aesDecryptImpl(key, encryptedBytes, usePadding, false)
-	// 	case AesKeyLength.Aes256:
-	// 		return aesDecryptImpl(key, encryptedBytes, usePadding, true)
-	// }
+export function aesDecrypt(key: AesKey, encryptedBytes: Uint8Array): Uint8Array {
+	//Decrypt without padding and 128 bit key is only used with fixed iv (decryptKey and aes256DecryptWithRecoveryKey)
+	//TODO we need not pass padding at all
 	return usePadding ? SYMMETRIC_CIPHER_FACADE.decryptBytes(key, encryptedBytes) : keyToUint8Array(SYMMETRIC_CIPHER_FACADE.decryptKey(key, encryptedBytes))
 }
 

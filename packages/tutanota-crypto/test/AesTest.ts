@@ -142,7 +142,7 @@ o.spec("aes", function () {
 		let iv = new Uint8Array([233, 159, 225, 105, 170, 223, 70, 218, 139, 107, 71, 91, 179, 231, 239, 102])
 		let encrypted = aesEncrypt(key, stringToUtf8Uint8Array("hello"), iv, true, false)
 		encrypted[0] = encrypted[0] + 1
-		let decrypted = aesDecrypt(key, encrypted, true)
+		let decrypted = aesDecrypt(key, encrypted)
 		o(utf8Uint8ArrayToString(decrypted)).equals("kello") // => encrypted data has been manipulated (missing MAC)
 	})
 	o("decryptManipulatedData 128 with mac", function () {
@@ -151,9 +151,9 @@ o.spec("aes", function () {
 		let encrypted = aesEncrypt(key, stringToUtf8Uint8Array("hello"), iv, true, true)
 		encrypted[1] = encrypted[1] + 1
 
-		o.check(() => aesDecrypt(key, encrypted, true)).satisfies(throwsErrorWithMessage(CryptoError, "invalid mac"))
+		o.check(() => aesDecrypt(key, encrypted)).satisfies(throwsErrorWithMessage(CryptoError, "invalid mac"))
 		try {
-			aesDecrypt(key, encrypted, true)
+			aesDecrypt(key, encrypted)
 		} catch (e) {
 			const error = e as Error
 			o(error instanceof CryptoError).equals(true)
@@ -166,7 +166,7 @@ o.spec("aes", function () {
 		let encrypted = aesEncrypt(key, stringToUtf8Uint8Array("hello"), iv, true, true)
 		encrypted[encrypted.length - 1] = encrypted[encrypted.length - 1] + 1
 
-		o.check(() => aesDecrypt(key, encrypted, true)).satisfies(throwsErrorWithMessage(CryptoError, "invalid mac"))
+		o.check(() => aesDecrypt(key, encrypted)).satisfies(throwsErrorWithMessage(CryptoError, "invalid mac"))
 	})
 	o("decryptMissingMac 128", function () {
 		let key = [151050668, 1341212767, 316219065, 2150939763]
@@ -174,7 +174,7 @@ o.spec("aes", function () {
 		let encrypted = aesEncrypt(key, stringToUtf8Uint8Array("hello"), iv, true, false)
 		encrypted = concat(new Uint8Array([1]), encrypted)
 
-		o.check(() => aesDecrypt(key, encrypted, true)).satisfies(throwsErrorWithMessage(CryptoError, "invalid mac"))
+		o.check(() => aesDecrypt(key, encrypted)).satisfies(throwsErrorWithMessage(CryptoError, "invalid mac"))
 	})
 	// TODO uncomment when aes 256 with hmac is implemented
 	// o("decryptManipulatedData 256", function (done) {

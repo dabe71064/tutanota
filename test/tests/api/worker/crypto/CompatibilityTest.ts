@@ -146,7 +146,7 @@ o.spec("CompatibilityTest", function () {
 			// encrypt data
 			let encryptedBytes = aesEncrypt(key, base64ToUint8Array(td.plainTextBase64), iv, true)
 			o(uint8ArrayToBase64(encryptedBytes)).equals(td.cipherTextBase64)
-			let decryptedBytes = uint8ArrayToBase64(aesDecrypt(key, encryptedBytes, true))
+			let decryptedBytes = uint8ArrayToBase64(aesDecrypt(key, encryptedBytes))
 			o(decryptedBytes).equals(td.plainTextBase64)
 			// encrypt 128 key
 			const keyToEncrypt128 = uint8ArrayToKey(hexToUint8Array(td.keyToEncrypt128))

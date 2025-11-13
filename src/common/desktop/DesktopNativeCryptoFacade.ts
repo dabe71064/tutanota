@@ -47,7 +47,7 @@ export class DesktopNativeCryptoFacade implements NativeCryptoFacade {
 
 	aesDecryptObject(encryptionKey: Aes256Key, serializedObject: string): number | string | boolean | ReadonlyArray<unknown> | object {
 		const encryptedBytes = base64ToUint8Array(serializedObject)
-		const decryptedBytes = this.cryptoFns.aesDecrypt(encryptionKey, encryptedBytes, true)
+		const decryptedBytes = this.cryptoFns.aesDecrypt(encryptionKey, encryptedBytes)
 		const stringObject = utf8Uint8ArrayToString(decryptedBytes)
 		return JSON.parse(stringObject)
 	}
@@ -78,7 +78,7 @@ export class DesktopNativeCryptoFacade implements NativeCryptoFacade {
 		const targetDir = await this.tfs.ensureUnencrytpedDir()
 		const encData = await this.fs.promises.readFile(encryptedFileUri)
 		const bitKey = this.cryptoFns.bytesToKey(key)
-		const decData = this.cryptoFns.aesDecrypt(bitKey, encData, true)
+		const decData = this.cryptoFns.aesDecrypt(bitKey, encData)
 
 		const filesInDirectory = await this.fs.promises.readdir(targetDir)
 		// since we're working purely in scratch space until putFileIntoDownloadsFolder
@@ -101,7 +101,7 @@ export class DesktopNativeCryptoFacade implements NativeCryptoFacade {
 	}
 
 	aesDecryptBytes(encryptionKey: Aes256Key, data: Uint8Array): Uint8Array {
-		return this.cryptoFns.aesDecrypt(encryptionKey, data, true)
+		return this.cryptoFns.aesDecrypt(encryptionKey, data)
 	}
 
 	aesEncryptBytes(encryptionKey: Aes256Key, data: Uint8Array): Uint8Array {

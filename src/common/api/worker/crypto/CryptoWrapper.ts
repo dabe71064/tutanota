@@ -73,8 +73,8 @@ export class CryptoWrapper {
 		return aes256RandomKey()
 	}
 
-	aesDecrypt(key: AesKey, encryptedBytes: Uint8Array, usePadding: boolean): Uint8Array {
-		return aesDecrypt(key, encryptedBytes, usePadding)
+	aesDecrypt(key: AesKey, encryptedBytes: Uint8Array): Uint8Array {
+		return aesDecrypt(key, encryptedBytes)
 	}
 
 	aesEncrypt(key: AesKey, bytes: Uint8Array, iv?: Uint8Array, usePadding?: boolean, useMac?: boolean): Uint8Array {

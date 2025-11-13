@@ -1225,7 +1225,7 @@ export class KeyRotationFacade {
 		const newSymAdminGroupKey = newAdminGroupKeys.symGroupKey
 
 		const { symGroupKey: symUserGroupKey, encryptedKeyPair: encryptedUserKeyPair } = newUserGroupKeys
-		const generatedPrivateEccKey = this.cryptoWrapper.aesDecrypt(symUserGroupKey.object, assertNotNull(encryptedUserKeyPair?.symEncPrivEccKey), true)
+		const generatedPrivateEccKey = this.cryptoWrapper.aesDecrypt(symUserGroupKey.object, assertNotNull(encryptedUserKeyPair?.symEncPrivEccKey))
 		const generatedPublicEccKey = assertNotNull(encryptedUserKeyPair?.pubEccKey)
 		const generatedEccKeyPair: Versioned<X25519KeyPair> = {
 			version: symUserGroupKey.version,

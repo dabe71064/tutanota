@@ -93,7 +93,7 @@ export function encryptKyberKey(encryptionKey: AesKey, privateKey: KyberPrivateK
 }
 
 export function decryptRsaKey(encryptionKey: AesKey, encryptedPrivateKey: Uint8Array): RsaPrivateKey {
-	return hexToRsaPrivateKey(uint8ArrayToHex(aesDecrypt(encryptionKey, encryptedPrivateKey, true)))
+	return hexToRsaPrivateKey(uint8ArrayToHex(aesDecrypt(encryptionKey, encryptedPrivateKey)))
 }
 
 export function decryptKeyPair(encryptionKey: AesKey, keyPair: EncryptedPqKeyPairs): PQKeyPairs
@@ -110,7 +110,7 @@ export function decryptKeyPair(encryptionKey: AesKey, keyPair: EncryptedKeyPairs
 
 function decryptRsaOrRsaX25519KeyPair(encryptionKey: AesKey, keyPair: EncryptedKeyPairs): RsaKeyPair | RsaX25519KeyPair {
 	const publicKey = hexToRsaPublicKey(uint8ArrayToHex(assertNotNull(keyPair.pubRsaKey)))
-	const privateKey = hexToRsaPrivateKey(uint8ArrayToHex(aesDecrypt(encryptionKey, keyPair.symEncPrivRsaKey!, true)))
+	const privateKey = hexToRsaPrivateKey(uint8ArrayToHex(aesDecrypt(encryptionKey, keyPair.symEncPrivRsaKey!)))
 	if (keyPair.symEncPrivEccKey) {
 		const publicEccKey = assertNotNull(keyPair.pubEccKey)
 		const privateEccKey = aesDecrypt(encryptionKey, assertNotNull(keyPair.symEncPrivEccKey))
