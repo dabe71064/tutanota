@@ -16,11 +16,9 @@ import {
 	isAdminClient,
 	isAndroidApp,
 	isBrowser,
-	isDesktop,
 	isIOSApp,
 	isOfflineStorageAvailable,
 	isTest,
-	isWebClient,
 } from "../../../common/api/common/Env.js"
 import { Const } from "../../../common/api/common/TutanotaConstants.js"
 import type { BrowserData } from "../../../common/misc/ClientConstants.js"
@@ -117,7 +115,6 @@ import { PublicIdentityKeyProvider } from "../../../common/api/worker/facades/Pu
 import type { SpamClassifier } from "../spamClassification/SpamClassifier"
 import { IdentityKeyTrustDatabase } from "../../../common/api/worker/facades/IdentityKeyTrustDatabase"
 import { AutosaveFacade } from "../../../common/api/worker/facades/lazy/AutosaveFacade"
-import { IdentityKeyTrustDatabase, KeyVerificationTableDefinitions } from "../../../common/api/worker/facades/IdentityKeyTrustDatabase"
 import { DriveFacade } from "../../../common/api/worker/facades/DriveFacade"
 
 assertWorkerOrNode()

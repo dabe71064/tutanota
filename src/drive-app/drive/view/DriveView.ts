@@ -150,7 +150,7 @@ export class DriveView extends BaseTopLevelView implements TopLevelView<DriveVie
 					return m(
 						BackgroundColumnLayout,
 						{
-							backgroundColor: theme.navigation_bg,
+							backgroundColor: theme.surface_container,
 							desktopToolbar: () => [],
 							columnLayout: [
 								m(DriveFolderView, {

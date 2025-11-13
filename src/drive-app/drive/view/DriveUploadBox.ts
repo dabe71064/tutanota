@@ -5,7 +5,6 @@ import { IconButton } from "../../../common/gui/base/IconButton"
 import { Icons } from "../../../common/gui/base/icons/Icons"
 import { lang } from "../../../common/misc/LanguageViewModel"
 import { Icon, IconSize } from "../../../common/gui/base/Icon"
-import { stateBgHover } from "../../../common/gui/builtinThemes"
 
 export interface DriveUploadBoxAttrs {
 	fileId: string
@@ -33,12 +32,12 @@ class DriveUploadProgressBar implements Component<DriveUploadProgressBarAttrs> {
 		const WIDTH = 100
 		const HEIGHT = 12
 
-		const containerProgressBarStyles = { width: `100%`, background: stateBgHover, "border-radius": "4px" }
+		const containerProgressBarStyles = { width: `100%`, background: theme.state_bg_hover, "border-radius": "4px" }
 
 		const innerProgressBarStyles = {
 			width: `${percentage}%`,
 			height: `${HEIGHT}px`,
-			backgroundColor: theme.content_accent,
+			backgroundColor: theme.primary_container,
 			"border-radius": "4px",
 		}
 
