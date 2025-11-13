@@ -56,8 +56,8 @@ export interface CryptoFunctions {
 }
 
 export const cryptoFns: CryptoFunctions = {
-	aesEncrypt(key: AesKey, bytes: Uint8Array, usePadding?: boolean, useMac?: boolean): Uint8Array {
-		return aesEncrypt(key, bytes, undefined, usePadding, useMac)
+	aesEncrypt(key: AesKey, bytes: Uint8Array, usePadding?: boolean): Uint8Array {
+		return aesEncrypt(key, bytes, undefined, usePadding)
 	},
 
 	aesDecrypt(key: Aes256Key, encryptedBytes: Uint8Array): Uint8Array {

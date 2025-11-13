@@ -12,28 +12,21 @@ import { SYMMETRIC_CIPHER_FACADE } from "./symmetric/SymmetricCipherFacade"
  * @param bytes The plain text.
  * @param iv The initialization vector.
  * @param usePadding If true, padding is used, otherwise no padding is used and the encrypted data must have the key size.
- * @param useMac If true, use HMAC (note that this is required for AES-256)
  * @return The encrypted bytes
  */
-export function aesEncrypt(key: AesKey, bytes: Uint8Array, iv: Uint8Array = generateIV(), usePadding: boolean = true, useMac: boolean = true) {
+export function aesEncrypt(key: AesKey, bytes: Uint8Array, iv: Uint8Array = generateIV(), usePadding: boolean = true) {
 	const keyLength = getAndVerifyAesKeyLength(key)
 
 	if (iv.length !== IV_BYTE_LENGTH) {
 		throw new CryptoError(`Illegal IV length: ${iv.length} (expected: ${IV_BYTE_LENGTH}): ${uint8ArrayToBase64(iv)} `)
 	}
 
-	if (!useMac && keyLength === AesKeyLength.Aes256) {
-		throw new CryptoError(`Can't use AES-256 without MAC`)
-	}
-
 	let subKeys = getAesSubKeys(key, useMac)
 	let encryptedBits = sjcl.mode.cbc.encrypt(new sjcl.cipher.aes(subKeys.cKey), uint8ArrayToBitArray(bytes), uint8ArrayToBitArray(iv), [], usePadding)
 	let data = concat(iv, bitArrayToUint8Array(encryptedBits))
 
-	if (useMac) {
-		const macBytes = hmacSha256(assertNotNull(subKeys.mKey), data)
-		data = concat(new Uint8Array([MAC_ENABLED_PREFIX]), data, macBytes)
-	}
+	const macBytes = hmacSha256(assertNotNull(subKeys.mKey), data)
+	data = concat(new Uint8Array([MAC_ENABLED_PREFIX]), data, macBytes)
 
 	const ciphertext = SYMMETRIC_CIPHER_FACADE.encryptBytes()
 	return data

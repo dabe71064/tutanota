@@ -47,8 +47,7 @@ import {
 	X25519PrivateKey,
 	X25519PublicKey,
 } from "@tutao/tutanota-crypto"
-import { arrayEquals, stringToUtf8Uint8Array, Versioned } from "@tutao/tutanota-utils"
-import { KeyVersion } from "@tutao/tutanota-utils"
+import { arrayEquals, KeyVersion, stringToUtf8Uint8Array, Versioned } from "@tutao/tutanota-utils"
 import { CryptoError } from "@tutao/tutanota-crypto/error.js"
 import { IdentityKeyPair } from "../../entities/sys/TypeRefs"
 import { parseKeyVersion } from "../facades/KeyLoaderFacade"
@@ -77,8 +76,8 @@ export class CryptoWrapper {
 		return aesDecrypt(key, encryptedBytes)
 	}
 
-	aesEncrypt(key: AesKey, bytes: Uint8Array, usePadding?: boolean, useMac?: boolean): Uint8Array {
-		return aesEncrypt(key, bytes, undefined, usePadding, useMac)
+	aesEncrypt(key: AesKey, bytes: Uint8Array, usePadding?: boolean): Uint8Array {
+		return aesEncrypt(key, bytes, undefined, usePadding)
 	}
 
 	decryptKey(encryptionKey: AesKey, key: Uint8Array): AesKey {
@@ -92,7 +91,7 @@ export class CryptoWrapper {
 	encryptEd25519Key(encryptionKey: VersionedKey, privateKey: Ed25519PrivateKey): VersionedEncryptedKey {
 		return {
 			encryptingKeyVersion: encryptionKey.version,
-			key: aesEncrypt(encryptionKey.object, ed25519PrivateKeyToBytes(privateKey), undefined, true, true),
+			key: aesEncrypt(encryptionKey.object, ed25519PrivateKeyToBytes(privateKey), undefined, true),
 		}
 	}
 
@@ -203,14 +202,14 @@ function deriveKey({ salt, key, info, length }: { salt: string; key: number[]; i
  @deprecated use the CryptoWrapper instance instead. This function will be hidden in the future
  */
 export function _encryptBytes(sk: AesKey, value: Uint8Array): Uint8Array {
-	return aesEncrypt(sk, value, random.generateRandomData(IV_BYTE_LENGTH), true, ENABLE_MAC)
+	return aesEncrypt(sk, value, random.generateRandomData(IV_BYTE_LENGTH), true)
 }
 
 /**
  @deprecated use the CryptoWrapper instance instead. This function will be hidden in the future
  */
 export function _encryptString(sk: AesKey, value: string): Uint8Array {
-	return aesEncrypt(sk, stringToUtf8Uint8Array(value), random.generateRandomData(IV_BYTE_LENGTH), true, ENABLE_MAC)
+	return aesEncrypt(sk, stringToUtf8Uint8Array(value), random.generateRandomData(IV_BYTE_LENGTH), true)
 }
 
 /**

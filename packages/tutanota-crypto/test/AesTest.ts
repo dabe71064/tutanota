@@ -140,7 +140,8 @@ o.spec("aes", function () {
 	o("decryptManipulatedData 128 without mac", function () {
 		let key = [151050668, 1341212767, 316219065, 2150939763]
 		let iv = new Uint8Array([233, 159, 225, 105, 170, 223, 70, 218, 139, 107, 71, 91, 179, 231, 239, 102])
-		let encrypted = aesEncrypt(key, stringToUtf8Uint8Array("hello"), iv, true, false)
+		//TODO use legacy function
+		let encrypted = aesEncrypt(key, stringToUtf8Uint8Array("hello"), iv, true)
 		encrypted[0] = encrypted[0] + 1
 		let decrypted = aesDecrypt(key, encrypted)
 		o(utf8Uint8ArrayToString(decrypted)).equals("kello") // => encrypted data has been manipulated (missing MAC)
@@ -148,7 +149,7 @@ o.spec("aes", function () {
 	o("decryptManipulatedData 128 with mac", function () {
 		let key = [151050668, 1341212767, 316219065, 2150939763]
 		let iv = new Uint8Array([233, 159, 225, 105, 170, 223, 70, 218, 139, 107, 71, 91, 179, 231, 239, 102])
-		let encrypted = aesEncrypt(key, stringToUtf8Uint8Array("hello"), iv, true, true)
+		let encrypted = aesEncrypt(key, stringToUtf8Uint8Array("hello"), iv, true)
 		encrypted[1] = encrypted[1] + 1
 
 		o.check(() => aesDecrypt(key, encrypted)).satisfies(throwsErrorWithMessage(CryptoError, "invalid mac"))
@@ -163,7 +164,7 @@ o.spec("aes", function () {
 	o("decryptManipulatedMac 128 with mac", function () {
 		let key = [151050668, 1341212767, 316219065, 2150939763]
 		let iv = new Uint8Array([233, 159, 225, 105, 170, 223, 70, 218, 139, 107, 71, 91, 179, 231, 239, 102])
-		let encrypted = aesEncrypt(key, stringToUtf8Uint8Array("hello"), iv, true, true)
+		let encrypted = aesEncrypt(key, stringToUtf8Uint8Array("hello"), iv, true)
 		encrypted[encrypted.length - 1] = encrypted[encrypted.length - 1] + 1
 
 		o.check(() => aesDecrypt(key, encrypted)).satisfies(throwsErrorWithMessage(CryptoError, "invalid mac"))
@@ -171,7 +172,7 @@ o.spec("aes", function () {
 	o("decryptMissingMac 128", function () {
 		let key = [151050668, 1341212767, 316219065, 2150939763]
 		let iv = new Uint8Array([233, 159, 225, 105, 170, 223, 70, 218, 139, 107, 71, 91, 179, 231, 239, 102])
-		let encrypted = aesEncrypt(key, stringToUtf8Uint8Array("hello"), iv, true, false)
+		let encrypted = aesEncrypt(key, stringToUtf8Uint8Array("hello"), iv, true)
 		encrypted = concat(new Uint8Array([1]), encrypted)
 
 		o.check(() => aesDecrypt(key, encrypted)).satisfies(throwsErrorWithMessage(CryptoError, "invalid mac"))
