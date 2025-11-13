@@ -92,7 +92,7 @@ export function encryptRsaKey(encryptionKey: AesKey, privateKey: RsaPrivateKey):
 }
 
 export function encryptX25519Key(encryptionKey: AesKey, privateKey: X25519PrivateKey): Uint8Array {
-	return aesEncrypt(encryptionKey, privateKey, undefined) // passing IV as undefined here is fine, as it will generate a new one for each encryption
+	return aesEncrypt(encryptionKey, privateKey) // passing IV as undefined here is fine, as it will generate a new one for each encryption
 }
 
 export function encryptKyberKey(encryptionKey: AesKey, privateKey: KyberPrivateKey): Uint8Array {

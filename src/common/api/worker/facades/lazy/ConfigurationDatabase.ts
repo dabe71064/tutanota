@@ -8,6 +8,7 @@ import {
 	aes256RandomKey,
 	aesDecrypt,
 	aesEncrypt,
+	aesEncryptWithIv,
 	AesKey,
 	decryptKey,
 	IV_BYTE_LENGTH,
@@ -38,7 +39,7 @@ type ConfigDb = {
 
 /** @PublicForTesting */
 export async function encryptItem(item: string, key: Aes256Key, iv: Uint8Array): Promise<Uint8Array> {
-	return aesEncrypt(key, stringToUtf8Uint8Array(item), iv)
+	return aesEncryptWithIv(key, stringToUtf8Uint8Array(item), iv)
 }
 
 export async function decryptLegacyItem(encryptedAddress: Uint8Array, key: Aes256Key, iv: Uint8Array): Promise<string> {
@@ -80,7 +81,7 @@ export class ConfigurationDatabase implements AutosaveFacade {
 		try {
 			const transaction = await db.createTransaction(false, [LocalDraftDataOS])
 			const encoded = encodeLocalAutosavedDraftData(draftData)
-			const encryptedData = aesEncrypt(metaData.key, encoded, metaData.iv)
+			const encryptedData = aesEncryptWithIv(metaData.key, encoded, metaData.iv)
 			await transaction.put(LocalDraftDataOS, LOCAL_DRAFT_KEY, encryptedData)
 		} catch (e) {
 			if (e instanceof DbError) {

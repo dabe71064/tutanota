@@ -1,8 +1,7 @@
 import sjcl from "../internal/sjcl.js"
-import { assertNotNull, concat, uint8ArrayToBase64 } from "@tutao/tutanota-utils"
+import { concat, uint8ArrayToBase64 } from "@tutao/tutanota-utils"
 import { CryptoError } from "../misc/CryptoError.js"
-import { hmacSha256 } from "./Hmac.js"
-import { Aes256Key, AesKey, bitArrayToUint8Array, IV_BYTE_LENGTH, keyToUint8Array, uint8ArrayToBitArray } from "./symmetric/SymmetricCipherUtils"
+import { Aes256Key, AesKey, IV_BYTE_LENGTH, keyToUint8Array, uint8ArrayToBitArray } from "./symmetric/SymmetricCipherUtils"
 import { AesKeyLength, getAndVerifyAesKeyLength } from "./symmetric/AesKeyLength"
 import { SYMMETRIC_CIPHER_FACADE } from "./symmetric/SymmetricCipherFacade"
 
@@ -10,25 +9,20 @@ import { SYMMETRIC_CIPHER_FACADE } from "./symmetric/SymmetricCipherFacade"
  * Encrypts bytes with AES128 or AES256 in CBC mode.
  * @param key The key to use for the encryption.
  * @param bytes The plain text.
- * @param iv The initialization vector.
  * @return The encrypted bytes
  */
-export function aesEncrypt(key: AesKey, bytes: Uint8Array, iv: Uint8Array = generateIV()) {
-	const keyLength = getAndVerifyAesKeyLength(key)
+export function aesEncrypt(key: AesKey, bytes: Uint8Array) {
+	return SYMMETRIC_CIPHER_FACADE.encryptBytes(key, bytes)
+}
 
+/**
+ * @deprecated
+ */
+export function aesEncryptWithIv(key: AesKey, bytes: Uint8Array, iv: Uint8Array): Uint8Array {
 	if (iv.length !== IV_BYTE_LENGTH) {
 		throw new CryptoError(`Illegal IV length: ${iv.length} (expected: ${IV_BYTE_LENGTH}): ${uint8ArrayToBase64(iv)} `)
 	}
-
-	let subKeys = getAesSubKeys(key, useMac)
-	let encryptedBits = sjcl.mode.cbc.encrypt(new sjcl.cipher.aes(subKeys.cKey), uint8ArrayToBitArray(bytes), uint8ArrayToBitArray(iv), [], usePadding)
-	let data = concat(iv, bitArrayToUint8Array(encryptedBits))
-
-	const macBytes = hmacSha256(assertNotNull(subKeys.mKey), data)
-	data = concat(new Uint8Array([MAC_ENABLED_PREFIX]), data, macBytes)
-
-	const ciphertext = SYMMETRIC_CIPHER_FACADE.encryptBytes()
-	return data
+	throw new Error("TODO not implemented")
 }
 
 /**

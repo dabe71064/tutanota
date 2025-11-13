@@ -8,11 +8,10 @@ import {
 	ServerModelParsedInstance,
 	ServerTypeModel,
 } from "../../common/EntityTypes"
-import { assertNotNull, Base64, base64ToUint8Array, stringToUtf8Uint8Array, TypeRef, uint8ArrayToBase64, utf8Uint8ArrayToString } from "@tutao/tutanota-utils"
+import { Base64, base64ToUint8Array, Nullable, stringToUtf8Uint8Array, TypeRef, uint8ArrayToBase64, utf8Uint8ArrayToString } from "@tutao/tutanota-utils"
 import { AssociationType, Cardinality, ValueType } from "../../common/EntityConstants"
 import { CryptoError } from "@tutao/tutanota-crypto/error.js"
-import { Nullable } from "@tutao/tutanota-utils"
-import { aesDecrypt, aesEncrypt, AesKey, extractIvFromCipherText, IV_BYTE_LENGTH, random } from "@tutao/tutanota-crypto"
+import { aesDecrypt, aesEncryptWithIv, AesKey, extractIvFromCipherText, IV_BYTE_LENGTH, random } from "@tutao/tutanota-crypto"
 import { convertDbToJsType, convertJsToDbType, decompressString, isDefaultValue, valueToDefault } from "./ModelMapper"
 import { ClientTypeReferenceResolver, ServerTypeReferenceResolver } from "../../common/EntityFunctions"
 import { isWebClient } from "../../common/Env"
@@ -32,7 +31,7 @@ export function encryptValue(
 	} else {
 		const dbValue = convertJsToDbType(valueType.type, value)!
 		const bytes = typeof dbValue === "string" ? stringToUtf8Uint8Array(dbValue) : dbValue
-		const encryptedBytes = aesEncrypt(sk, bytes, iv)
+		const encryptedBytes = aesEncryptWithIv(sk, bytes, iv)
 		return uint8ArrayToBase64(encryptedBytes)
 	}
 }

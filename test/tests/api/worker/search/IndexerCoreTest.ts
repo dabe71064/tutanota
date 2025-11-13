@@ -1041,11 +1041,7 @@ o.spec("IndexerCore", () => {
 		})
 		const encInstanceId = encryptIndexKeyBase64(key, instanceId, iv)
 		const listId = "list-id"
-		const elementData: ElementDataDbRow = [
-			listId,
-			aesEncrypt(key, new Uint8Array([metaRowId, anotherMetaRowId]), random.generateRandomData(IV_BYTE_LENGTH)),
-			groupId,
-		]
+		const elementData: ElementDataDbRow = [listId, aesEncrypt(key, new Uint8Array([metaRowId, anotherMetaRowId])), groupId]
 		const otherId = new Uint8Array(16).fill(88)
 		indexUpdate.delete.searchMetaRowToEncInstanceIds.set(metaRowId, [
 			{

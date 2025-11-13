@@ -142,7 +142,7 @@ o.spec("ConfigurationDbTest", function () {
 			when(keyLoaderFacade.getCurrentSymUserGroupKey()).thenReturn(currentUserGroupKey)
 			dbKey = aes256RandomKey()
 			iv = random.generateRandomData(16)
-			encIv = aesEncrypt(dbKey, iv, undefined)
+			encIv = aesEncrypt(dbKey, iv)
 			when(transaction.get(ConfigurationMetaDataOS, Metadata.encDbIv)).thenResolve(encIv)
 		})
 
@@ -162,7 +162,7 @@ o.spec("ConfigurationDbTest", function () {
 			const groupKey = aes256RandomKey()
 
 			//TODO no padding
-			const encDBKey = aesEncrypt(groupKey, keyToUint8Array(dbKey), iv)
+			const encDBKey = aesEncrypt(groupKey, keyToUint8Array(dbKey))
 			when(transaction.get(ConfigurationMetaDataOS, Metadata.userGroupKeyVersion)).thenResolve(groupKeyVersion)
 			when(transaction.get(ConfigurationMetaDataOS, Metadata.userEncDbKey)).thenResolve(encDBKey)
 			when(keyLoaderFacade.loadSymUserGroupKey(groupKeyVersion)).thenResolve(groupKey)
@@ -194,7 +194,7 @@ o.spec("ConfigurationDbTest", function () {
 			const groupKeyVersion = 0
 			const groupKey = aes256RandomKey()
 			//TODO no padding
-			const encDBKey = aesEncrypt(groupKey, keyToUint8Array(dbKey), iv)
+			const encDBKey = aesEncrypt(groupKey, keyToUint8Array(dbKey))
 			when(transaction.get(ConfigurationMetaDataOS, Metadata.userGroupKeyVersion)).thenResolve(undefined)
 			when(transaction.get(ConfigurationMetaDataOS, Metadata.userEncDbKey)).thenResolve(encDBKey)
 			when(keyLoaderFacade.loadSymUserGroupKey(groupKeyVersion)).thenResolve(groupKey)

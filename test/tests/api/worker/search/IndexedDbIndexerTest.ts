@@ -192,7 +192,7 @@ o.spec("IndexedDbIndexer", () => {
 		o.test("init existing db no errors", async function () {
 			let userGroupKey = freshVersioned(aes256RandomKey())
 			let dbKey = aes256RandomKey()
-			let encDbIv = aesEncrypt(dbKey, FIXED_IV, random.generateRandomData(IV_BYTE_LENGTH))
+			let encDbIv = aesEncrypt(dbKey, FIXED_IV)
 			let userEncDbKey = encryptKey(userGroupKey.object, dbKey)
 			const userGroupKeyVersion = 0
 
@@ -236,7 +236,7 @@ o.spec("IndexedDbIndexer", () => {
 			let dbKey = aes256RandomKey()
 			let userEncDbKey = encryptKey(userGroupKey.object, dbKey)
 			const userGroupKeyVersion = 0
-			let encDbIv = aesEncrypt(dbKey, FIXED_IV, random.generateRandomData(IV_BYTE_LENGTH))
+			let encDbIv = aesEncrypt(dbKey, FIXED_IV)
 			const t = await idbStub.createTransaction()
 			t.put(MetaDataOS, Metadata.userEncDbKey, userEncDbKey)
 			t.put(MetaDataOS, Metadata.userGroupKeyVersion, userGroupKeyVersion)
