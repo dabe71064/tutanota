@@ -36,7 +36,7 @@ const seed = () => {
 seed()
 
 export interface CryptoFunctions {
-	aesEncrypt(key: AesKey, bytes: Uint8Array, iv?: Uint8Array, usePadding?: boolean, useMac?: boolean): Uint8Array
+	aesEncrypt(key: AesKey, bytes: Uint8Array, usePadding?: boolean, useMac?: boolean): Uint8Array
 
 	aesDecrypt(key: AesKey, encryptedBytes: Uint8Array): Uint8Array
 
@@ -56,8 +56,8 @@ export interface CryptoFunctions {
 }
 
 export const cryptoFns: CryptoFunctions = {
-	aesEncrypt(key: AesKey, bytes: Uint8Array, iv?: Uint8Array, usePadding?: boolean, useMac?: boolean): Uint8Array {
-		return aesEncrypt(key, bytes, iv, usePadding, useMac)
+	aesEncrypt(key: AesKey, bytes: Uint8Array, usePadding?: boolean, useMac?: boolean): Uint8Array {
+		return aesEncrypt(key, bytes, undefined, usePadding, useMac)
 	},
 
 	aesDecrypt(key: Aes256Key, encryptedBytes: Uint8Array): Uint8Array {

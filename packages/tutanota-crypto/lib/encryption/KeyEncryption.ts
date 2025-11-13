@@ -80,8 +80,8 @@ export function aes256DecryptWithRecoveryKey(encryptionKey: Aes256Key, keyToBeDe
 	}
 }
 
-export function encryptRsaKey(encryptionKey: AesKey, privateKey: RsaPrivateKey, iv?: Uint8Array): Uint8Array {
-	return aesEncrypt(encryptionKey, hexToUint8Array(rsaPrivateKeyToHex(privateKey)), iv, true, true)
+export function encryptRsaKey(encryptionKey: AesKey, privateKey: RsaPrivateKey): Uint8Array {
+	return aesEncrypt(encryptionKey, hexToUint8Array(rsaPrivateKeyToHex(privateKey)))
 }
 
 export function encryptX25519Key(encryptionKey: AesKey, privateKey: X25519PrivateKey): Uint8Array {

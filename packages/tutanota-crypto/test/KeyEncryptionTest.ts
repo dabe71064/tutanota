@@ -22,7 +22,7 @@ o.spec("key encryption", function () {
 		const gk = [3957386659, 354339016, 3786337319, 3366334248]
 		const privateKey = hexToRsaPrivateKey(rsaPrivateHexKey)
 		const iv = base64ToUint8Array("OhpFcbl6oPjsn3WwhYFnOg==")
-		const encryptedPrivateKey = encryptRsaKey(gk, privateKey, iv)
+		const encryptedPrivateKey = encryptRsaKey(gk, privateKey)
 		o(encryptedPrivateKey.length % 2).equals(1) // make sure a mac is present
 		o(decryptRsaKey(gk, encryptedPrivateKey)).deepEquals(privateKey)
 	})
@@ -31,7 +31,7 @@ o.spec("key encryption", function () {
 		const gk = aes256RandomKey()
 		const privateKey = hexToRsaPrivateKey(rsaPrivateHexKey)
 		const iv = base64ToUint8Array("OhpFcbl6oPjsn3WwhYFnOg==")
-		const encryptedPrivateKey = encryptRsaKey(gk, privateKey, iv)
+		const encryptedPrivateKey = encryptRsaKey(gk, privateKey)
 		o(decryptRsaKey(gk, encryptedPrivateKey)).deepEquals(privateKey)
 	})
 
