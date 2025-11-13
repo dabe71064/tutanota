@@ -69,14 +69,9 @@ export function aesDecrypt(key: AesKey, encryptedBytes: Uint8Array): Uint8Array 
  *
  * @param key The key to use for the decryption.
  * @param encryptedBytes The ciphertext encoded as bytes.
- * @param usePadding If true, padding is used, otherwise no padding is used and the encrypted data must have the key size.
  * @return The decrypted bytes.
  * @deprecated
  */
-export function unauthenticatedAesDecrypt(key: Aes256Key, encryptedBytes: Uint8Array, usePadding: boolean = true): Uint8Array {
-	return usePadding
-		? SYMMETRIC_CIPHER_FACADE.decryptBytesDeprecatedUnauthenticated(key, encryptedBytes)
-		: keyToUint8Array(SYMMETRIC_CIPHER_FACADE.decryptKeyDeprecatedUnauthenticated(key, encryptedBytes))
+export function unauthenticatedAesDecrypt(key: Aes256Key, encryptedBytes: Uint8Array): Uint8Array {
+	return SYMMETRIC_CIPHER_FACADE.decryptBytesDeprecatedUnauthenticated(key, encryptedBytes)
 }
-
-//TODO export function unauthenticatedAesDecryptKey

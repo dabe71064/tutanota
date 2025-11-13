@@ -71,10 +71,17 @@ export function decryptKey(encryptionKey: AesKey, keyToBeDecrypted: Uint8Array):
 	return SYMMETRIC_CIPHER_FACADE.decryptKey(encryptionKey, keyToBeDecrypted)
 }
 
+/**
+ * @deprecated
+ */
+export function unauthenticatedDecryptKey(key: Aes256Key, encryptedBytes: Uint8Array): AesKey {
+	return SYMMETRIC_CIPHER_FACADE.decryptKeyDeprecatedUnauthenticated(key, encryptedBytes)
+}
+
 export function aes256DecryptWithRecoveryKey(encryptionKey: Aes256Key, keyToBeDecrypted: Uint8Array): Aes256Key {
 	// legacy case: recovery code without IV/macas
 	if (keyToBeDecrypted.length === getKeyLengthAsBytes(AesKeyLength.Aes128)) {
-		return SYMMETRIC_CIPHER_FACADE.decryptKeyDeprecatedUnauthenticated(encryptionKey, keyToBeDecrypted)
+		return unauthenticatedDecryptKey(encryptionKey, keyToBeDecrypted)
 	} else {
 		return decryptKey(encryptionKey, keyToBeDecrypted)
 	}

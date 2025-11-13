@@ -17,6 +17,7 @@ import {
 	uint8ArrayToKey,
 	unauthenticatedAesDecrypt,
 } from "@tutao/tutanota-crypto"
+import { unauthenticatedDecryptKey } from "@tutao/tutanota-crypto/dist/encryption/KeyEncryption"
 
 // the prng throws if it doesn't have enough entropy
 // it may be called very early, so we need to seed it
@@ -44,7 +45,14 @@ export interface CryptoFunctions {
 
 	aesDecrypt(key: AesKey, encryptedBytes: Uint8Array): Uint8Array
 
-	unauthenticatedAesDecrypt(key: Aes256Key, encryptedBytes: Uint8Array, usePadding: boolean): Uint8Array
+	/**
+	 * @deprecated
+	 */
+	unauthenticatedAesDecrypt(key: Aes256Key, encryptedBytes: Uint8Array): Uint8Array
+	/**
+	 * @deprecated
+	 */
+	unauthenticatedDecryptKey(key: Aes256Key, encryptedBytes: Uint8Array): Uint8Array
 
 	decryptKey(encryptionKey: AesKey, key: Uint8Array): AesKey
 
@@ -71,8 +79,18 @@ export const cryptoFns: CryptoFunctions = {
 		return aesDecrypt(key, encryptedBytes)
 	},
 
-	unauthenticatedAesDecrypt(key: Aes256Key, encryptedBytes: Uint8Array, usePadding: boolean): Uint8Array {
-		return unauthenticatedAesDecrypt(key, encryptedBytes, usePadding)
+	/**
+	 * @deprecated
+	 */
+	unauthenticatedAesDecrypt(key: Aes256Key, encryptedBytes: Uint8Array): Uint8Array {
+		return unauthenticatedAesDecrypt(key, encryptedBytes)
+	},
+
+	/**
+	 * @deprecated
+	 */
+	unauthenticatedDecryptKey(key: Aes256Key, encryptedBytes: Uint8Array): Uint8Array {
+		return unauthenticatedDecryptKey(key, encryptedBytes)
 	},
 
 	decryptKey(encryptionKey: AesKey, key: Uint8Array): AesKey {

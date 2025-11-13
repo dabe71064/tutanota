@@ -478,7 +478,7 @@ o.spec("IndexerCore", () => {
 		o.check(rowKey).equals(encInstanceId)
 		const [listIdValue, encRowsValue, ownerGroupValue] = value
 		o.check(listIdValue).equals(listId)
-		o.check(Array.from(unauthenticatedAesDecrypt(key, encRowsValue, true))).deepEquals(Array.from(new Uint8Array([searchIndexRowKey])))
+		o.check(Array.from(unauthenticatedAesDecrypt(key, encRowsValue))).deepEquals(Array.from(new Uint8Array([searchIndexRowKey])))
 		o.check(ownerGroupValue).equals(groupId)
 	})
 	o.spec("writeIndexUpdate _insertNewIndexEntries ", function () {

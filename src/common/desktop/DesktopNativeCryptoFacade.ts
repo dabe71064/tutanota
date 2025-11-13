@@ -93,7 +93,7 @@ export class DesktopNativeCryptoFacade implements NativeCryptoFacade {
 	}
 
 	unauthenticatedAes256DecryptKey(encryptionKey: Aes256Key, keyToDecrypt: Uint8Array): Uint8Array {
-		return this.cryptoFns.unauthenticatedAesDecrypt(encryptionKey, keyToDecrypt, false)
+		return this.cryptoFns.unauthenticatedDecryptKey(encryptionKey, keyToDecrypt)
 	}
 
 	aes256EncryptKey(encryptionKey: Aes256Key, keyToEncrypt: Uint8Array): Uint8Array {

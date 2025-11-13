@@ -44,7 +44,7 @@ o.spec("DesktopCryptoFacadeTest", () => {
 		when(cryptoFnsMock.aesDecrypt(aes128Key, matchers.anything())).thenReturn(decryptedUint8)
 		when(cryptoFnsMock.aesDecrypt(aes256Key, aes256EncryptedKey)).thenReturn(aes256DecryptedKey)
 
-		when(cryptoFnsMock.unauthenticatedAesDecrypt(aes256Key, aes256EncryptedKey, false)).thenReturn(aes256DecryptedKey)
+		when(cryptoFnsMock.unauthenticatedDecryptKey(aes256Key, aes256EncryptedKey)).thenReturn(aes256DecryptedKey)
 
 		when(cryptoFnsMock.decryptKey(aes128Key, aes256EncryptedKey)).thenReturn(uint8ArrayToKey(aes256DecryptedKey))
 		when(cryptoFnsMock.bytesToKey(someKey)).thenReturn(aes128Key)
