@@ -16,7 +16,7 @@ export function encryptIndexKeyBase64(key: Aes256Key, indexKey: string, dbIv: Ui
 }
 
 export function encryptIndexKeyUint8Array(key: Aes256Key, indexKey: string, dbIv: Uint8Array): Uint8Array {
-	return aes256EncryptSearchIndexEntry(key, stringToUtf8Uint8Array(indexKey), dbIv, true).slice(dbIv.length)
+	return aes256EncryptSearchIndexEntry(key, stringToUtf8Uint8Array(indexKey), dbIv).slice(dbIv.length)
 }
 
 export function decryptIndexKey(key: Aes256Key, encIndexKey: Uint8Array, dbIv: Uint8Array): string {
