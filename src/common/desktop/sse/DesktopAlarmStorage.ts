@@ -5,7 +5,7 @@ import { DesktopConfigKey } from "../config/ConfigKeys"
 import type { DesktopKeyStoreFacade } from "../DesktopKeyStoreFacade.js"
 import { assertNotNull, Base64, base64ToUint8Array, findAllAndRemove, uint8ArrayToBase64 } from "@tutao/tutanota-utils"
 import { log } from "../DesktopLog"
-import { AesKey, base64ToKey, decryptKey, uint8ArrayToBitArray } from "@tutao/tutanota-crypto"
+import { AesKey, base64ToKey, decryptKey, keyToBase64, uint8ArrayToKey } from "@tutao/tutanota-crypto"
 import { ClientModelUntypedInstance, ServerModelUntypedInstance, UntypedInstance } from "../../api/common/EntityTypes"
 import { AlarmNotification, AlarmNotificationTypeRef, NotificationSessionKey } from "../../api/entities/sys/TypeRefs"
 import { InstancePipeline } from "../../api/worker/crypto/InstancePipeline"
@@ -13,7 +13,7 @@ import { hasError } from "../../api/common/utils/ErrorUtils"
 import { CryptoError } from "@tutao/tutanota-crypto/error.js"
 import { EncryptedAlarmNotification } from "../../native/common/EncryptedAlarmNotification"
 import { AttributeModel } from "../../api/common/AttributeModel"
-import { ClientTypeModelResolver, TypeModelResolver } from "../../api/common/EntityFunctions"
+import { ClientTypeModelResolver } from "../../api/common/EntityFunctions"
 
 /**
  * manages session keys used for decrypting alarm notifications, encrypting & persisting them to disk
@@ -44,7 +44,7 @@ export class DesktopAlarmStorage {
 		if (!keys[pushIdentifierId]) {
 			this.unencryptedSessionKeys[pushIdentifierId] = uint8ArrayToBase64(pushIdentifierSessionKey)
 			return this.keyStoreFacade.getDeviceKey().then((pw) => {
-				keys[pushIdentifierId] = uint8ArrayToBase64(this.cryptoFacade.aes256EncryptKey(pw, pushIdentifierSessionKey))
+				keys[pushIdentifierId] = uint8ArrayToBase64(this.cryptoFacade.aes256EncryptKey(pw, uint8ArrayToKey(pushIdentifierSessionKey)))
 				return this.conf.setVar(DesktopConfigKey.pushEncSessionKeys, keys)
 			})
 		}
@@ -88,8 +88,8 @@ export class DesktopAlarmStorage {
 			try {
 				const pw = await this.keyStoreFacade.getDeviceKey()
 				const decryptedKey = this.cryptoFacade.unauthenticatedAes256DecryptKey(pw, base64ToUint8Array(encryptedSessionKeyFromConf))
-				this.unencryptedSessionKeys[pushIdentifierId] = uint8ArrayToBase64(decryptedKey)
-				return uint8ArrayToKey(decryptedKey)
+				this.unencryptedSessionKeys[pushIdentifierId] = keyToBase64(decryptedKey)
+				return decryptedKey
 			} catch (e) {
 				console.warn("could not decrypt pushIdentifierSessionKey")
 				return null

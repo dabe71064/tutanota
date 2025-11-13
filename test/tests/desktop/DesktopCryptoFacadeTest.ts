@@ -1,9 +1,9 @@
 import n from "../nodemocker.js"
 import o from "@tutao/otest"
 import { DesktopNativeCryptoFacade } from "../../../src/common/desktop/DesktopNativeCryptoFacade.js"
-import { downcast, stringToUtf8Uint8Array } from "@tutao/tutanota-utils"
+import { stringToUtf8Uint8Array } from "@tutao/tutanota-utils"
 import type { CryptoFunctions } from "../../../src/common/desktop/CryptoFns.js"
-import { Argon2IDExports, keyToUint8Array, uint8ArrayToBitArray } from "@tutao/tutanota-crypto"
+import { Argon2IDExports, uint8ArrayToKey } from "@tutao/tutanota-crypto"
 import { matchers, object, verify, when } from "testdouble"
 import { TempFs } from "../../../src/common/desktop/files/TempFs.js"
 
@@ -44,7 +44,7 @@ o.spec("DesktopCryptoFacadeTest", () => {
 		when(cryptoFnsMock.aesDecrypt(aes128Key, matchers.anything())).thenReturn(decryptedUint8)
 		when(cryptoFnsMock.aesDecrypt(aes256Key, aes256EncryptedKey)).thenReturn(aes256DecryptedKey)
 
-		when(cryptoFnsMock.unauthenticatedDecryptKey(aes256Key, aes256EncryptedKey)).thenReturn(aes256DecryptedKey)
+		when(cryptoFnsMock.unauthenticatedDecryptKey(aes256Key, aes256EncryptedKey)).thenReturn(uint8ArrayToKey(aes256DecryptedKey))
 
 		when(cryptoFnsMock.decryptKey(aes128Key, aes256EncryptedKey)).thenReturn(uint8ArrayToKey(aes256DecryptedKey))
 		when(cryptoFnsMock.bytesToKey(someKey)).thenReturn(aes128Key)

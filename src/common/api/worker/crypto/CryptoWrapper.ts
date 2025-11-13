@@ -4,6 +4,7 @@ import {
 	aesDecrypt,
 	aesEncrypt,
 	AesKey,
+	AesKeyLength,
 	AsymmetricKeyPair,
 	bytesToEd25519PrivateKey,
 	decryptKey,
@@ -49,6 +50,7 @@ import { arrayEquals, KeyVersion, stringToUtf8Uint8Array, Versioned } from "@tut
 import { CryptoError } from "@tutao/tutanota-crypto/error.js"
 import { IdentityKeyPair } from "../../entities/sys/TypeRefs"
 import { parseKeyVersion } from "../facades/KeyLoaderFacade"
+import { getKeyLengthAsBytes } from "../../../../../packages/tutanota-crypto/lib/encryption/symmetric/AesKeyLength"
 
 /**
  * An AesKey (usually a group key) and its version.
@@ -149,7 +151,7 @@ export class CryptoWrapper {
 			salt,
 			key,
 			info: context,
-			length: KEY_LENGTH_BYTES_AES_256,
+			length: getKeyLengthAsBytes(AesKeyLength.Aes256),
 		})
 	}
 

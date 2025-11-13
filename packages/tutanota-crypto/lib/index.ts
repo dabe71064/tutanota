@@ -1,4 +1,4 @@
-export { generateIV, aesEncrypt, aesDecrypt, aes256EncryptSearchIndexEntry, authenticatedAesDecrypt, unauthenticatedAesDecrypt } from "./encryption/Aes.js"
+export { aesEncrypt, aesDecrypt, aes256EncryptSearchIndexEntry, unauthenticatedAesDecrypt } from "./encryption/Aes.js"
 export { IV_BYTE_LENGTH, FIXED_IV } from "./encryption/symmetric/SymmetricCipherUtils.js"
 export {
 	X25519PrivateKey,
@@ -71,6 +71,7 @@ export {
 	encryptX25519Key,
 	encryptKyberKey,
 	aes256DecryptWithRecoveryKey,
+	unauthenticatedDecryptKey,
 } from "./encryption/KeyEncryption.js"
 export { Randomizer, random } from "./random/Randomizer.js"
 export {

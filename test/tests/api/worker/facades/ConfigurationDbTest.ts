@@ -11,7 +11,7 @@ import { downcast, KeyVersion } from "@tutao/tutanota-utils"
 import { DbStub } from "../search/DbStub.js"
 import { ExternalImageRule } from "../../../../../src/common/api/common/TutanotaConstants.js"
 import { UserTypeRef } from "../../../../../src/common/api/entities/sys/TypeRefs.js"
-import { aes256RandomKey, aesEncrypt, AesKey, decryptKey, encryptKey, IV_BYTE_LENGTH, random } from "@tutao/tutanota-crypto"
+import { aes256RandomKey, aesEncrypt, AesKey, decryptKey, encryptKey, IV_BYTE_LENGTH, keyToUint8Array, random } from "@tutao/tutanota-crypto"
 import { createTestEntity } from "../../../TestUtils.js"
 import { KeyLoaderFacade } from "../../../../../src/common/api/worker/facades/KeyLoaderFacade.js"
 import { matchers, object, verify, when } from "testdouble"
@@ -187,7 +187,7 @@ o.spec("ConfigurationDbTest", function () {
 			const encDbKeyCaptor = matchers.captor()
 			verify(transaction.put(ConfigurationMetaDataOS, Metadata.userEncDbKey, encDbKeyCaptor.capture()))
 			const capturedDbKey = decryptKey(currentUserGroupKey.object, encDbKeyCaptor.value)
-			o(capturedDbKey).deepEquals(keyToUint8Array(dbKey))
+			o(capturedDbKey).deepEquals(dbKey)
 		})
 
 		o("read group key version when without meta data entry", async function () {

@@ -10,7 +10,7 @@ import {
 	uint8ArrayToHex,
 	utf8Uint8ArrayToString,
 } from "@tutao/tutanota-utils"
-import { aesDecrypt, aesEncrypt, getAesSubKeys, unauthenticatedAesDecrypt } from "../lib/encryption/Aes.js"
+import { aesDecrypt, aesEncrypt, unauthenticatedAesDecrypt } from "../lib/encryption/Aes.js"
 import { CryptoError } from "../lib/misc/CryptoError.js"
 import { random } from "../lib/random/Randomizer.js"
 import { assertThrows, throwsErrorWithMessage } from "@tutao/tutanota-test-utils"
@@ -28,8 +28,9 @@ import {
 	IV_BYTE_LENGTH,
 	keyToBase64,
 	keyToUint8Array,
+	uint8ArrayToKey,
 } from "../lib/index.js"
-import { MAC_ENABLED_PREFIX, uint8ArrayToBitArray } from "../lib/encryption/symmetric/SymmetricCipherUtils"
+import { uint8ArrayToBitArray } from "../lib/encryption/symmetric/SymmetricCipherUtils"
 import { getAndVerifyAesKeyLength, getKeyLengthAsBytes } from "../lib/encryption/symmetric/AesKeyLength"
 
 o.spec("aes", function () {
@@ -263,7 +264,7 @@ o.spec("aes", function () {
 
 // visibleForTesting
 export function aes256EncryptLegacy(key: Aes256Key, bytes: Uint8Array, iv: Uint8Array, usePadding: boolean = true, useMac: boolean = true): Uint8Array {
-	getAndVerifyAesKeyLength(key, [KEY_LENGTH_BITS_AES_256])
+	getAndVerifyAesKeyLength(key, [getKeyLengthAsBytes(AesKeyLength.Aes256)])
 
 	if (iv.length !== IV_BYTE_LENGTH) {
 		throw new CryptoError(`Illegal IV length: ${iv.length} (expected: ${IV_BYTE_LENGTH}): ${uint8ArrayToBase64(iv)} `)

@@ -7,13 +7,14 @@ import { DesktopKeyStoreFacade } from "../../../../src/common/desktop/DesktopKey
 import { CredentialEncryptionMode } from "../../../../src/common/misc/credentials/CredentialEncryptionMode.js"
 import { CryptoError } from "@tutao/tutanota-crypto/error.js"
 import { KeyPermanentlyInvalidatedError } from "../../../../src/common/api/common/error/KeyPermanentlyInvalidatedError.js"
+import { uint8ArrayToKey } from "@tutao/tutanota-crypto"
 
 o.spec("KeychainEncryption", () => {
 	let encryption: KeychainEncryption
 	const appPassHandler: AppPassHandler = object()
 	const crypto: DesktopNativeCryptoFacade = object()
 	const keystore: DesktopKeyStoreFacade = object()
-	const unencryptedData = new Uint8Array([0x0d, 0x0a, 0x07, 0x0a])
+	const unencryptedData = uint8ArrayToKey(new Uint8Array([0x0d, 0x0a, 0x07, 0x0a]))
 	const encryptedData = new Uint8Array([0x0e, 0x04, 0x0c, 0x01, 0x03])
 	const wrappedData = new Uint8Array([0x03, 0x01, 0x03, 0x0a, 0x07, 0x07, 0x0e, 0x0d])
 	const keychainKey = [0x02, 0x0e, 0x04, 0x0c, 0x04, 0x0a, 0x01, 0x04]

@@ -4,6 +4,7 @@ import { DesktopKeyStoreFacade } from "../DesktopKeyStoreFacade.js"
 import { AppPassHandler } from "./AppPassHandler.js"
 import { DesktopNativeCryptoFacade } from "../DesktopNativeCryptoFacade.js"
 import { CryptoError } from "@tutao/tutanota-crypto/error.js"
+import { AesKey } from "@tutao/tutanota-crypto"
 
 export class KeychainEncryption {
 	constructor(
@@ -12,7 +13,7 @@ export class KeychainEncryption {
 		private readonly desktopKeyStoreFacade: DesktopKeyStoreFacade,
 	) {}
 
-	async decryptUsingKeychain(encryptedDataWithAppPassWrapper: Uint8Array, encryptionMode: DesktopCredentialsMode): Promise<Uint8Array> {
+	async decryptUsingKeychain(encryptedDataWithAppPassWrapper: Uint8Array, encryptionMode: DesktopCredentialsMode): Promise<AesKey> {
 		try {
 			assertSupportedEncryptionMode(encryptionMode)
 			const encryptedData = await this.appPassHandler.removeAppPassWrapper(encryptedDataWithAppPassWrapper, encryptionMode)
@@ -29,7 +30,7 @@ export class KeychainEncryption {
 		}
 	}
 
-	async encrypKeyUsingKeychain(key: Uint8Array, encryptionMode: DesktopCredentialsMode): Promise<Uint8Array> {
+	async encrypKeyUsingKeychain(key: AesKey, encryptionMode: DesktopCredentialsMode): Promise<Uint8Array> {
 		try {
 			assertSupportedEncryptionMode(encryptionMode)
 			const keyChainKey = await this.desktopKeyStoreFacade.getKeyChainKey()

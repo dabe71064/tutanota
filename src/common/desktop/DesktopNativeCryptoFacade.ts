@@ -1,7 +1,7 @@
 import { base64ToBase64Url, base64ToUint8Array, stringToUtf8Uint8Array, uint8ArrayToBase64, utf8Uint8ArrayToString } from "@tutao/tutanota-utils"
 import type { CryptoFunctions } from "./CryptoFns.js"
 import type * as FsModule from "node:fs"
-import { Aes256Key, AesKey, Argon2IDExports, generateKeyFromPassphraseArgon2id } from "@tutao/tutanota-crypto"
+import { Aes256Key, AesKey, Argon2IDExports, generateKeyFromPassphraseArgon2id, keyToUint8Array } from "@tutao/tutanota-crypto"
 import { FileUri } from "../native/common/FileApp.js"
 import path from "node:path"
 import { NativeCryptoFacade } from "../native/common/generatedipc/NativeCryptoFacade.js"
@@ -92,11 +92,14 @@ export class DesktopNativeCryptoFacade implements NativeCryptoFacade {
 		return decryptedFileUri
 	}
 
-	unauthenticatedAes256DecryptKey(encryptionKey: Aes256Key, keyToDecrypt: Uint8Array): Uint8Array {
+	/**
+	 * @deprecated
+	 */
+	unauthenticatedAes256DecryptKey(encryptionKey: Aes256Key, keyToDecrypt: Uint8Array): AesKey {
 		return this.cryptoFns.unauthenticatedDecryptKey(encryptionKey, keyToDecrypt)
 	}
 
-	aes256EncryptKey(encryptionKey: Aes256Key, keyToEncrypt: Uint8Array): Uint8Array {
+	aes256EncryptKey(encryptionKey: Aes256Key, keyToEncrypt: AesKey): Uint8Array {
 		return this.cryptoFns.encryptKey(encryptionKey, keyToEncrypt)
 	}
 
