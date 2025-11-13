@@ -78,3 +78,5 @@ export function unauthenticatedAesDecrypt(key: Aes256Key, encryptedBytes: Uint8A
 		? SYMMETRIC_CIPHER_FACADE.decryptBytesDeprecatedUnauthenticated(key, encryptedBytes)
 		: keyToUint8Array(SYMMETRIC_CIPHER_FACADE.decryptKeyDeprecatedUnauthenticated(key, encryptedBytes))
 }
+
+//TODO export function unauthenticatedAesDecryptKey

@@ -1,5 +1,5 @@
 import o from "@tutao/otest"
-import { aes256RandomKey, aesDecrypt, aesEncrypt, ENABLE_MAC, IV_BYTE_LENGTH, random } from "@tutao/tutanota-crypto"
+import { aes256RandomKey, aesDecrypt, aesEncrypt, IV_BYTE_LENGTH, random } from "@tutao/tutanota-crypto"
 import { Cardinality, ValueType } from "../../../../../src/common/api/common/EntityConstants.js"
 import {
 	ClientModelParsedInstance,
@@ -138,9 +138,7 @@ o.spec("CryptoMapper", function () {
 			let sk = aes256RandomKey()
 			let value = "this is a string value"
 			let encryptedValue = neverNull(encryptValue(valueType, value, sk))
-			let expected = uint8ArrayToBase64(
-				aesEncrypt(sk, stringToUtf8Uint8Array(value), base64ToUint8Array(encryptedValue).slice(ENABLE_MAC ? 1 : 0, ENABLE_MAC ? 17 : 16)),
-			)
+			let expected = uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(value), base64ToUint8Array(encryptedValue).slice(1, 17)))
 			o(encryptedValue).equals(expected)
 			o(decryptValue(valueType, encryptedValue, sk)).equals(value)
 		})
@@ -149,16 +147,12 @@ o.spec("CryptoMapper", function () {
 			let sk = aes256RandomKey()
 			let value = false
 			let encryptedValue = neverNull(encryptValue(valueType, value, sk))
-			let expected = uint8ArrayToBase64(
-				aesEncrypt(sk, stringToUtf8Uint8Array(value ? "1" : "0"), base64ToUint8Array(encryptedValue).slice(ENABLE_MAC ? 1 : 0, ENABLE_MAC ? 17 : 16)),
-			)
+			let expected = uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(value ? "1" : "0"), base64ToUint8Array(encryptedValue).slice(1, 17)))
 			o(encryptedValue).equals(expected)
 			o(decryptValue(valueType, encryptedValue, sk)).equals(false)
 			value = true
 			encryptedValue = neverNull(encryptValue(valueType, value, sk))
-			expected = uint8ArrayToBase64(
-				aesEncrypt(sk, stringToUtf8Uint8Array(value ? "1" : "0"), base64ToUint8Array(encryptedValue).slice(ENABLE_MAC ? 1 : 0, ENABLE_MAC ? 17 : 16)),
-			)
+			expected = uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(value ? "1" : "0"), base64ToUint8Array(encryptedValue).slice(1, 17)))
 			o(encryptedValue).equals(expected)
 			o(decryptValue(valueType, encryptedValue, sk)).equals(true)
 		})
@@ -168,11 +162,7 @@ o.spec("CryptoMapper", function () {
 			let value = new Date()
 			let encryptedValue = neverNull(encryptValue(valueType, value, sk))
 			let expected = uint8ArrayToBase64(
-				aesEncrypt(
-					sk,
-					stringToUtf8Uint8Array(value.getTime().toString()),
-					base64ToUint8Array(encryptedValue).slice(ENABLE_MAC ? 1 : 0, ENABLE_MAC ? 17 : 16),
-				),
+				aesEncrypt(sk, stringToUtf8Uint8Array(value.getTime().toString()), base64ToUint8Array(encryptedValue).slice(1, 17)),
 			)
 			o(encryptedValue).equals(expected)
 			o(decryptValue(valueType, encryptedValue, sk)).deepEquals(value)
@@ -182,7 +172,7 @@ o.spec("CryptoMapper", function () {
 			let sk = aes256RandomKey()
 			let value = random.generateRandomData(5)
 			let encryptedValue = neverNull(encryptValue(valueType, value, sk))
-			let expected = uint8ArrayToBase64(aesEncrypt(sk, value, base64ToUint8Array(encryptedValue).slice(ENABLE_MAC ? 1 : 0, ENABLE_MAC ? 17 : 16)))
+			let expected = uint8ArrayToBase64(aesEncrypt(sk, value, base64ToUint8Array(encryptedValue).slice(1, 7)))
 			o(encryptedValue).equals(expected)
 			const decryptedValue = decryptValue(valueType, encryptedValue, sk)
 			o(Array.from(decryptedValue as Uint8Array)).deepEquals(Array.from(value))

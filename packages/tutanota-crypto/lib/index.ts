@@ -123,5 +123,4 @@ export { AesKeyLength, getAndVerifyAesKeyLength } from "./encryption/symmetric/A
 export { AesKey } from "./encryption/symmetric/SymmetricCipherUtils"
 export { Aes128Key } from "./encryption/symmetric/SymmetricCipherUtils"
 export { Aes256Key } from "./encryption/symmetric/SymmetricCipherUtils"
-export { ENABLE_MAC } from "./encryption/symmetric/SymmetricCipherUtils"
 export { extractIvFromCipherText } from "./encryption/symmetric/SymmetricCipherUtils"
