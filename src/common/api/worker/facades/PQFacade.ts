@@ -1,8 +1,8 @@
 import { KyberFacade } from "./KyberFacade.js"
 import {
 	Aes256Key,
+	aesDecrypt,
 	aesEncrypt,
-	authenticatedAesDecrypt,
 	generateX25519KeyPair,
 	hkdf,
 	KEY_LENGTH_BYTES_AES_256,
@@ -108,7 +108,7 @@ export class PQFacade {
 			CryptoProtocolVersion.TUTA_CRYPT,
 		)
 
-		return authenticatedAesDecrypt(kek, message.encapsulation.kekEncBucketKey)
+		return aesDecrypt(kek, message.encapsulation.kekEncBucketKey)
 	}
 
 	private derivePQKEK(

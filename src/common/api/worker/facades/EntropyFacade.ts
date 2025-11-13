@@ -1,4 +1,4 @@
-import { authenticatedAesDecrypt, EntropySource, random, Randomizer } from "@tutao/tutanota-crypto"
+import { aesDecrypt, EntropySource, random, Randomizer } from "@tutao/tutanota-crypto"
 import { UserFacade } from "./UserFacade.js"
 import { createEntropyData, TutanotaProperties } from "../../entities/tutanota/TypeRefs.js"
 import { EntropyService } from "../../entities/tutanota/Services.js"
@@ -7,6 +7,8 @@ import { ConnectionError, LockedError, ServiceUnavailableError } from "../../com
 import { IServiceExecutor } from "../../common/ServiceRequest.js"
 import { KeyLoaderFacade, parseKeyVersion } from "./KeyLoaderFacade.js"
 import { _encryptBytes } from "../crypto/CryptoWrapper.js"
+import { getSymmetricCipherVersion, SymmetricCipherVersion } from "../../../../../packages/tutanota-crypto/lib/encryption/symmetric/SymmetricCipherVersion"
+import { CryptoError } from "@tutao/tutanota-crypto/dist/misc/CryptoError"
 
 export interface EntropyDataChunk {
 	source: EntropySource
@@ -75,7 +77,12 @@ export class EntropyFacade {
 			try {
 				const keyLoaderFacade = this.lazyKeyLoaderFacade()
 				const userGroupKey = await keyLoaderFacade.loadSymUserGroupKey(parseKeyVersion(tutanotaProperties.userKeyVersion ?? "0"))
-				const entropy = authenticatedAesDecrypt(userGroupKey, tutanotaProperties.userEncEntropy)
+				//Enforce authenticated decryption
+				const cipherVersion = getSymmetricCipherVersion(tutanotaProperties.userEncEntropy)
+				if (cipherVersion === SymmetricCipherVersion.UnusedReservedUnauthenticated) {
+					throw new CryptoError("Mac is required but not present.")
+				}
+				const entropy = aesDecrypt(userGroupKey, tutanotaProperties.userEncEntropy)
 				random.addStaticEntropy(entropy)
 			} catch (error) {
 				console.log("could not decrypt entropy", error)
