@@ -210,7 +210,8 @@ export class MailModel {
 				const folderSystem = this.getFolderSystemByGroupId(assertNotNull(mail._ownerGroup))
 
 				let targetFolder = sourceMailFolder
-				if (isLeaderClient && mailboxDetail && folderSystem) {
+				const isInternalUser = this.logins.getUserController().isInternalUser()
+				if (isLeaderClient && isInternalUser && mailboxDetail && folderSystem) {
 					targetFolder = await this.processInboxHandler().handleIncomingMail(mail, sourceMailFolder, mailboxDetail, folderSystem)
 				}
 				if (isWebClient()) {
@@ -338,7 +339,7 @@ export class MailModel {
 	 * @param targetMailFolderKind
 	 */
 	async simpleMoveMails(mails: readonly IdTuple[], targetMailFolderKind: SimpleMoveMailTarget): Promise<MovedMails[]> {
-		return await this.mailFacade.simpleMoveMails(mails, targetMailFolderKind, null)
+		return await this.mailFacade.simpleMoveMails(mails, targetMailFolderKind)
 	}
 
 	getFolderExcludedFromMove(moveMode: MoveMode): SystemFolderType | null {

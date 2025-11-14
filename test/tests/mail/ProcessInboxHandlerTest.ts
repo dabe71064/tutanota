@@ -63,7 +63,7 @@ o.spec("ProcessInboxHandlerTest", function () {
 		folderSystem = object<FolderSystem>()
 		mailboxDetail = object()
 
-		when(mailFacade.moveMails(anything(), anything(), anything(), ClientClassifierType.CLIENT_CLASSIFICATION)).thenResolve([])
+		when(mailFacade.moveMails(anything(), anything(), anything())).thenResolve([])
 		when(
 			mailFacade.loadMailDetailsBlob(
 				matchers.argThat((requestedMails: Mail) => {
@@ -96,7 +96,7 @@ o.spec("ProcessInboxHandlerTest", function () {
 	o("handleIncomingMail does move mail from inbox to other folder if inbox rule applies", async function () {
 		mail.sets = [inboxFolder._id]
 		const processInboxDatum: UnencryptedProcessInboxDatum = {
-			byInboxRule: true,
+			classifierType: ClientClassifierType.CUSTOMER_INBOX_RULES,
 			mailId: mail._id,
 			targetMoveFolder: trashFolder._id,
 			vector: new Uint8Array(),
@@ -117,7 +117,7 @@ o.spec("ProcessInboxHandlerTest", function () {
 		mail.sets = [inboxFolder._id]
 		when(inboxRuleHandler.findAndApplyMatchingRule(mailboxDetail, mail, true)).thenResolve(null)
 		const processInboxDatum: UnencryptedProcessInboxDatum = {
-			byInboxRule: false,
+			classifierType: ClientClassifierType.CLIENT_CLASSIFICATION,
 			mailId: mail._id,
 			targetMoveFolder: spamFolder._id,
 			vector: new Uint8Array(),
@@ -137,7 +137,7 @@ o.spec("ProcessInboxHandlerTest", function () {
 		mail.sets = [inboxFolder._id]
 		when(inboxRuleHandler.findAndApplyMatchingRule(mailboxDetail, mail, true)).thenResolve(null)
 		const processInboxDatum: UnencryptedProcessInboxDatum = {
-			byInboxRule: false,
+			classifierType: ClientClassifierType.CLIENT_CLASSIFICATION,
 			mailId: mail._id,
 			targetMoveFolder: inboxFolder._id,
 			vector: new Uint8Array(),
@@ -157,7 +157,7 @@ o.spec("ProcessInboxHandlerTest", function () {
 		mail.sets = [spamFolder._id]
 		when(inboxRuleHandler.findAndApplyMatchingRule(mailboxDetail, mail, true)).thenResolve(null)
 		const processInboxDatum: UnencryptedProcessInboxDatum = {
-			byInboxRule: false,
+			classifierType: ClientClassifierType.CLIENT_CLASSIFICATION,
 			mailId: mail._id,
 			targetMoveFolder: spamFolder._id,
 			vector: new Uint8Array(),
@@ -177,7 +177,7 @@ o.spec("ProcessInboxHandlerTest", function () {
 		mail.sets = [spamFolder._id]
 		when(inboxRuleHandler.findAndApplyMatchingRule(mailboxDetail, mail, true)).thenResolve(null)
 		const processInboxDatum: UnencryptedProcessInboxDatum = {
-			byInboxRule: false,
+			classifierType: ClientClassifierType.CLIENT_CLASSIFICATION,
 			mailId: mail._id,
 			targetMoveFolder: inboxFolder._id,
 			vector: new Uint8Array(),
@@ -212,7 +212,7 @@ o.spec("ProcessInboxHandlerTest", function () {
 		)
 		when(inboxRuleHandler.findAndApplyMatchingRule(mailboxDetail, mail, true)).thenResolve(null)
 		const processedMail: UnencryptedProcessInboxDatum = {
-			byInboxRule: false,
+			classifierType: ClientClassifierType.CLIENT_CLASSIFICATION,
 			mailId: mail._id,
 			targetMoveFolder: inboxFolder._id,
 			vector: compressedVector,

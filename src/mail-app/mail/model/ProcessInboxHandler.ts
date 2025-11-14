@@ -10,7 +10,6 @@ import { assertMainOrNode } from "../../../common/api/common/Env"
 import { StrippedEntity } from "../../../common/api/common/utils/EntityUtils"
 import { SpamMailProcessor } from "../../workerUtils/spamClassification/SpamMailProcessor"
 import { LoginController } from "../../../common/api/main/LoginController"
-import { ClientClassifierType } from "../../../common/api/common/ClientClassifierType"
 
 assertMainOrNode()
 

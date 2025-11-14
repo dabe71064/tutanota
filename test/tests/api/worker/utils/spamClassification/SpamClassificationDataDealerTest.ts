@@ -6,6 +6,7 @@ import { SpamDecision } from "../../../../../../src/common/api/common/TutanotaCo
 import { object } from "testdouble"
 import { EntityClient } from "../../../../../../src/common/api/common/EntityClient"
 import { BulkMailLoader } from "../../../../../../src/mail-app/workerUtils/index/BulkMailLoader"
+import { MailFacade } from "../../../../../../src/common/api/worker/facades/lazy/MailFacade"
 
 o.spec("SpamClassificationDataDealer", () => {
 	const createSpamTrainingDatum = (spamDecision: SpamDecision): ClientSpamTrainingDatum =>
@@ -19,8 +20,14 @@ o.spec("SpamClassificationDataDealer", () => {
 	const entityClientMock = object<EntityClient>()
 
 	const bulkMailLoaderMock = object<BulkMailLoader>()
+	const mailFacadeMock = object<MailFacade>()
 
-	const dealer = new SpamClassificationDataDealer(entityClientMock, () => Promise.resolve(bulkMailLoaderMock), new SpamMailProcessor())
+	const dealer = new SpamClassificationDataDealer(
+		entityClientMock,
+		() => Promise.resolve(bulkMailLoaderMock),
+		() => Promise.resolve(mailFacadeMock),
+		new SpamMailProcessor(),
+	)
 
 	o.spec("subsampleHamAndSpamMails", () => {
 		o("does not subsample if ratio is balanced", () => {

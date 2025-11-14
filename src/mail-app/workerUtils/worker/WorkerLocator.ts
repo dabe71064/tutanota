@@ -421,9 +421,6 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData) 
 		return factory()
 	}
 
-	const spamClassificationDataDealer = new SpamClassificationDataDealer(locator.cachingEntityClient, locator.bulkMailLoader)
-	locator.spamClassifier = new SpamClassifier(locator.cacheStorage, spamClassificationDataDealer)
-
 	const serverDateProvider: DateProvider = {
 		now(): number {
 			return locator.restClient.getServerTimestampMs()
@@ -739,6 +736,10 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData) 
 			locator.publicEncryptionKeyProvider,
 		)
 	})
+
+	const spamClassificationDataDealer = new SpamClassificationDataDealer(locator.cachingEntityClient, locator.bulkMailLoader, locator.mail)
+	locator.spamClassifier = new SpamClassifier(locator.cacheStorage, spamClassificationDataDealer)
+
 	const nativePushFacade = new NativePushFacadeSendDispatcher(worker)
 	locator.calendar = lazyMemoized(async () => {
 		const { CalendarFacade } = await import("../../../common/api/worker/facades/lazy/CalendarFacade.js")

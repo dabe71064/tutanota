@@ -9,6 +9,7 @@ import {
 	MailService,
 	ManageLabelService,
 	MoveMailService,
+	PopulateClientSpamTrainingDataService,
 	ProcessInboxService,
 	ReportMailService,
 	ResolveConversationsService,
@@ -61,6 +62,8 @@ import {
 	createManageLabelServicePostIn,
 	createMoveMailData,
 	createNewDraftAttachment,
+	createPopulateClientSpamTrainingDataPostIn,
+	createPopulateClientSpamTrainingDatum,
 	createProcessInboxDatum,
 	createProcessInboxPostIn,
 	createReportMailPostData,
@@ -84,6 +87,7 @@ import {
 	MailFolder,
 	MailTypeRef,
 	MovedMails,
+	PopulateClientSpamTrainingDatum,
 	ProcessInboxDatum,
 	ReportedMailFieldMarker,
 	SendDraftData,
@@ -118,7 +122,6 @@ import {
 	isNotNull,
 	isSameTypeRef,
 	noOp,
-	Nullable,
 	ofClass,
 	parseUrl,
 	promiseFilter,
@@ -166,8 +169,8 @@ import { EntityUpdateData, isUpdateForTypeRef } from "../../../common/utils/Enti
 import { Entity } from "../../../common/EntityTypes"
 import { KeyVerificationMismatchError } from "../../../common/error/KeyVerificationMismatchError"
 import { VerifiedPublicEncryptionKey } from "./KeyVerificationFacade"
-import { ClientClassifierType } from "../../../common/ClientClassifierType"
 import { UnencryptedProcessInboxDatum } from "../../../../../mail-app/mail/model/ProcessInboxHandler"
+import { UnencryptedPopulateClientSpamTrainingDatum } from "../../../../../mail-app/workerUtils/spamClassification/SpamClassificationDataDealer"
 
 assertWorkerOrNode()
 type Attachments = ReadonlyArray<TutanotaFile | DataFile | FileReference>
@@ -400,12 +403,7 @@ export class MailFacade {
 	/**
 	 * Move mails from {@param targetFolder} except those that are in {@param excludeMailSet}.
 	 */
-	async moveMails(
-		mails: readonly IdTuple[],
-		targetFolder: IdTuple,
-		excludeMailSet: IdTuple | null,
-		moveReason: ClientClassifierType | null = null,
-	): Promise<MovedMails[]> {
+	async moveMails(mails: readonly IdTuple[], targetFolder: IdTuple, excludeMailSet: IdTuple | null): Promise<MovedMails[]> {
 		if (isEmpty(mails)) {
 			return []
 		}
@@ -422,7 +420,7 @@ export class MailFacade {
 						mails,
 						excludeMailSet,
 						targetFolder,
-						moveReason,
+						moveReason: null, // moveReason is not needed anymore from clients using TutanotaModel > 97
 					}),
 				)
 				movedMails.push(...moveMailPostOut.movedMails)
@@ -431,11 +429,7 @@ export class MailFacade {
 		return movedMails
 	}
 
-	async simpleMoveMails(
-		mails: readonly IdTuple[],
-		targetFolderKind: SimpleMoveMailTarget,
-		moveReason: Nullable<ClientClassifierType>,
-	): Promise<MovedMails[]> {
+	async simpleMoveMails(mails: readonly IdTuple[], targetFolderKind: SimpleMoveMailTarget): Promise<MovedMails[]> {
 		if (isEmpty(mails)) {
 			return []
 		}
@@ -448,7 +442,7 @@ export class MailFacade {
 				createSimpleMoveMailPostIn({
 					mails,
 					destinationSetType: targetFolderKind,
-					moveReason,
+					moveReason: null, // moveReason is not needed anymore from clients using TutanotaModel > 97
 				}),
 			)
 			movedMails.push(...simpleMove.movedMails)
@@ -1231,18 +1225,21 @@ export class MailFacade {
 		)
 	}
 
-	private async encryptUnencryptedProcessInboxData(mailGroupId: Id, mails: readonly UnencryptedProcessInboxDatum[]): Promise<ProcessInboxDatum[]> {
+	private async encryptUnencryptedProcessInboxData(
+		mailGroupId: Id,
+		unencryptedProcessInboxData: readonly UnencryptedProcessInboxDatum[],
+	): Promise<ProcessInboxDatum[]> {
 		const processInboxData: ProcessInboxDatum[] = []
-		for (const mail of mails) {
+		for (const unencryptedProcessInboxDatum of unencryptedProcessInboxData) {
 			const mailGroupKey = await this.keyLoaderFacade.getCurrentSymGroupKey(mailGroupId)
 			const sk = aes256RandomKey()
 			const ownerEncSessionKey = this.cryptoWrapper.encryptKeyWithVersionedKey(mailGroupKey, sk)
-			const { targetMoveFolder, classifierType, mailId } = mail
+			const { targetMoveFolder, classifierType, mailId } = unencryptedProcessInboxDatum
 			processInboxData.push(
 				createProcessInboxDatum({
 					ownerEncVectorSessionKey: ownerEncSessionKey.key,
 					ownerKeyVersion: ownerEncSessionKey.encryptingKeyVersion.toString(),
-					encVector: aesEncrypt(sk, mail.vector),
+					encVector: aesEncrypt(sk, unencryptedProcessInboxDatum.vector),
 					classifierType,
 					mailId,
 					targetMoveFolder,
@@ -1252,8 +1249,8 @@ export class MailFacade {
 		return processInboxData
 	}
 
-	async processNewMails(mailGroupId: Id, mails: readonly UnencryptedProcessInboxDatum[]) {
-		const processInboxData = await this.encryptUnencryptedProcessInboxData(mailGroupId, mails)
+	async processNewMails(mailGroupId: Id, unencryptedProcessInboxData: readonly UnencryptedProcessInboxDatum[]) {
+		const processInboxData = await this.encryptUnencryptedProcessInboxData(mailGroupId, unencryptedProcessInboxData)
 		await promiseMap(
 			splitInChunks(MAX_NBR_OF_MAILS_SYNC_OPERATION, processInboxData),
 			async (inboxData) =>
@@ -1262,6 +1259,52 @@ export class MailFacade {
 					createProcessInboxPostIn({
 						mailOwnerGroup: mailGroupId,
 						processInboxDatum: inboxData,
+					}),
+				),
+			{ concurrency: 5 },
+		)
+	}
+
+	private async encryptUnencryptedPopulateClientSpamTrainingDatum(
+		mailGroupId: Id,
+		unencryptedPopulateClientSpamTrainingData: ReadonlyArray<UnencryptedPopulateClientSpamTrainingDatum>,
+	): Promise<Array<PopulateClientSpamTrainingDatum>> {
+		const populateClientSpamTrainingData: PopulateClientSpamTrainingDatum[] = []
+		for (const unencryptedProcessInboxDatum of unencryptedPopulateClientSpamTrainingData) {
+			const mailGroupKey = await this.keyLoaderFacade.getCurrentSymGroupKey(mailGroupId)
+			const sk = aes256RandomKey()
+			const ownerEncSessionKey = this.cryptoWrapper.encryptKeyWithVersionedKey(mailGroupKey, sk)
+			const { isSpam, confidence, mailId } = unencryptedProcessInboxDatum
+			populateClientSpamTrainingData.push(
+				createPopulateClientSpamTrainingDatum({
+					ownerEncVectorSessionKey: ownerEncSessionKey.key,
+					ownerKeyVersion: ownerEncSessionKey.encryptingKeyVersion.toString(),
+					encVector: aesEncrypt(sk, unencryptedProcessInboxDatum.vector),
+					isSpam,
+					mailId,
+					confidence,
+				}),
+			)
+		}
+		return populateClientSpamTrainingData
+	}
+
+	async populateClientSpamTrainingData(
+		mailGroupId: Id,
+		unencryptedPopulateClientSpamTrainingData: ReadonlyArray<UnencryptedPopulateClientSpamTrainingDatum>,
+	) {
+		const populateClientSpamTrainingData = await this.encryptUnencryptedPopulateClientSpamTrainingDatum(
+			mailGroupId,
+			unencryptedPopulateClientSpamTrainingData,
+		)
+		await promiseMap(
+			splitInChunks(MAX_NBR_OF_MAILS_SYNC_OPERATION, populateClientSpamTrainingData),
+			async (clientSpamTrainingData) =>
+				this.serviceExecutor.post(
+					PopulateClientSpamTrainingDataService,
+					createPopulateClientSpamTrainingDataPostIn({
+						mailOwnerGroup: mailGroupId,
+						populateClientSpamTrainingDatum: clientSpamTrainingData,
 					}),
 				),
 			{ concurrency: 5 },

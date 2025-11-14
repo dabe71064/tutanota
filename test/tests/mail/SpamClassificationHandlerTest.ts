@@ -56,7 +56,7 @@ o.spec("SpamClassificationHandlerTest", function () {
 		})
 		folderSystem = object<FolderSystem>()
 
-		when(mailFacade.moveMails(anything(), anything(), anything(), ClientClassifierType.CLIENT_CLASSIFICATION)).thenResolve([])
+		when(mailFacade.moveMails(anything(), anything(), anything())).thenResolve([])
 		when(folderSystem.getSystemFolderByType(MailSetKind.SPAM)).thenReturn(spamFolder)
 		when(folderSystem.getSystemFolderByType(MailSetKind.INBOX)).thenReturn(inboxFolder)
 		when(folderSystem.getSystemFolderByType(MailSetKind.TRASH)).thenReturn(trashFolder)
