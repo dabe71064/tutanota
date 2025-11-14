@@ -1,4 +1,4 @@
-import { createSpamMailDatum, SpamClassificationHandler } from "./SpamClassificationHandler"
+import { SpamClassificationHandler } from "./SpamClassificationHandler"
 import { InboxRuleHandler } from "./InboxRuleHandler"
 import { Mail, MailFolder, ProcessInboxDatum } from "../../../common/api/entities/tutanota/TypeRefs"
 import { FeatureType, MailSetKind } from "../../../common/api/common/TutanotaConstants"
@@ -8,7 +8,6 @@ import { MailboxDetail } from "../../../common/mailFunctionality/MailboxModel"
 import { FolderSystem } from "../../../common/api/common/mail/FolderSystem"
 import { assertMainOrNode } from "../../../common/api/common/Env"
 import { StrippedEntity } from "../../../common/api/common/utils/EntityUtils"
-import { SpamMailProcessor } from "../../workerUtils/spamClassification/SpamMailProcessor"
 import { LoginController } from "../../../common/api/main/LoginController"
 
 assertMainOrNode()
@@ -28,7 +27,6 @@ export class ProcessInboxHandler {
 		private spamHandler: () => SpamClassificationHandler,
 		private readonly inboxRuleHandler: () => InboxRuleHandler,
 		private processedMailsByMailGroup: Map<Id, UnencryptedProcessInboxDatum[]> = new Map(),
-		private readonly spamMailProcessor: SpamMailProcessor = new SpamMailProcessor(),
 		private readonly debounceTimeout: number = DEFAULT_DEBOUNCE_PROCESS_INBOX_SERVICE_REQUESTS_MS,
 	) {
 		this.sendProcessInboxServiceRequest = debounce(this.debounceTimeout, async (mailFacade: MailFacade) => {
@@ -76,7 +74,7 @@ export class ProcessInboxHandler {
 					mailId: mail._id,
 					targetMoveFolder: moveToFolder._id,
 					classifierType: null,
-					vector: await this.spamMailProcessor.vectorizeAndCompress(createSpamMailDatum(mail, mailDetails)),
+					vector: await this.mailFacade.vectorizeAndCompressMails({ mail, mailDetails }),
 				}
 			}
 		}

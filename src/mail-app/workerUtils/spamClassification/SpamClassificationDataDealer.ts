@@ -17,10 +17,11 @@ import { DEFAULT_IS_SPAM_CONFIDENCE, getMailSetKind, isFolder, MailSetKind, Spam
 import { GENERATED_MIN_ID, getElementId, isSameId, StrippedEntity, timestampToGeneratedId } from "../../../common/api/common/utils/EntityUtils"
 import { BulkMailLoader, MailWithMailDetails } from "../index/BulkMailLoader"
 import { hasError } from "../../../common/api/common/utils/ErrorUtils"
-import { SpamMailProcessor } from "./SpamMailProcessor"
-import { createSpamMailDatum } from "../../mail/model/SpamClassificationHandler"
+import { SpamMailProcessor } from "../../../common/api/common/mail/spamClassificationUtils/SpamMailProcessor"
 import { CacheMode } from "../../../common/api/worker/rest/EntityRestClient"
 import { MailFacade } from "../../../common/api/worker/facades/lazy/MailFacade"
+
+import { createSpamMailDatum } from "../../../common/api/common/mail/spamClassificationUtils/PreprocessPatterns"
 
 /*
  * While downloading mails, we start from the current mailbag. However, it might be that the current mailbag is too new,

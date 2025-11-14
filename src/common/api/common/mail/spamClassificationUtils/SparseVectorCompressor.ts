@@ -1,5 +1,5 @@
-import { DEFAULT_VECTOR_MAX_LENGTH, MAX_WORD_FREQUENCY } from "./HashingVectorizer"
-import { ProgrammingError } from "../../../common/api/common/error/ProgrammingError"
+import { ProgrammingError } from "../../error/ProgrammingError"
+import { DEFAULT_VECTOR_MAX_LENGTH, MAX_WORD_FREQUENCY } from "../../TutanotaConstants"
 
 /**
  * Example:

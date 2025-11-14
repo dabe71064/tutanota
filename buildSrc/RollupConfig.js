@@ -27,13 +27,14 @@ export const dependencyMap = {
 /**
  * These are the definitions of chunks with static dependencies. Key is the chunk and values are dependencies to other chunks
  */
+// Fixme check the latest changes to allowedImports with jhm and das
 export const allowedImports = {
 	"polyfill-helpers": [],
 	"wasm-fallback": [],
 	wasm: ["wasm-fallback"],
 	"common-min": ["polyfill-helpers"],
 	boot: ["polyfill-helpers", "common-min"],
-	common: ["polyfill-helpers", "common-min"],
+	common: ["polyfill-helpers", "common-min", "spam-classifier"],
 	"gui-base": ["polyfill-helpers", "common-min", "common", "boot"],
 	main: ["polyfill-helpers", "common-min", "common", "boot", "gui-base", "date"],
 	sanitizer: ["polyfill-helpers", "common-min", "common", "boot", "gui-base"],
@@ -47,7 +48,7 @@ export const allowedImports = {
 	"calendar-view": ["polyfill-helpers", "common-min", "common", "boot", "gui-base", "main", "date", "date-gui", "sharing", "contacts"],
 	login: ["polyfill-helpers", "common-min", "common", "boot", "gui-base", "main"],
 	"spam-classifier": ["polyfill-helpers", "common", "common-min", "main"],
-	worker: ["polyfill-helpers", "common-min", "common", "native-common", "native-worker", "wasm", "wasm-fallback"],
+	worker: ["polyfill-helpers", "common-min", "common", "native-common", "native-worker", "wasm", "wasm-fallback", "spam-classifier"],
 	"pow-worker": [],
 	settings: [
 		"polyfill-helpers",

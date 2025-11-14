@@ -16,12 +16,14 @@ import { ClientClassifierType } from "../../../src/common/api/common/ClientClass
 import { assert, assertNotNull } from "@tutao/tutanota-utils"
 import { MailFacade } from "../../../src/common/api/worker/facades/lazy/MailFacade"
 import { createTestEntity } from "../TestUtils"
-import { createSpamMailDatum, SpamClassificationHandler } from "../../../src/mail-app/mail/model/SpamClassificationHandler"
+import { SpamClassificationHandler } from "../../../src/mail-app/mail/model/SpamClassificationHandler"
 import { FolderSystem } from "../../../src/common/api/common/mail/FolderSystem"
 import { isSameId } from "../../../src/common/api/common/utils/EntityUtils"
 import { UnencryptedProcessInboxDatum } from "../../../src/mail-app/mail/model/ProcessInboxHandler"
-import { SpamMailProcessor } from "../../../src/mail-app/workerUtils/spamClassification/SpamMailProcessor"
+import { SpamMailProcessor } from "../../../src/common/api/common/mail/spamClassificationUtils/SpamMailProcessor"
 import { hammingWindow } from "@tensorflow/tfjs-core/dist/ops/signal/hamming_window"
+
+import { createSpamMailDatum } from "../../../src/common/api/common/mail/spamClassificationUtils/PreprocessPatterns"
 
 const { anything } = matchers
 

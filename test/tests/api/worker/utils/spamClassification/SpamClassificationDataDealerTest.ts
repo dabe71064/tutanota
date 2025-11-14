@@ -1,6 +1,6 @@
 import o from "@tutao/otest"
 import { SpamClassificationDataDealer } from "../../../../../../src/mail-app/workerUtils/spamClassification/SpamClassificationDataDealer"
-import { SpamMailProcessor } from "../../../../../../src/mail-app/workerUtils/spamClassification/SpamMailProcessor"
+import { SpamMailProcessor } from "../../../../../../src/common/api/common/mail/spamClassificationUtils/SpamMailProcessor"
 import { ClientSpamTrainingDatum, createClientSpamTrainingDatum } from "../../../../../../src/common/api/entities/tutanota/TypeRefs"
 import { SpamDecision } from "../../../../../../src/common/api/common/TutanotaConstants"
 import { object } from "testdouble"

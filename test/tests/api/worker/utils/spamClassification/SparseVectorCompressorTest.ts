@@ -1,10 +1,10 @@
 import o from "@tutao/otest"
 import { promiseMap } from "@tutao/tutanota-utils"
-import { SparseVectorCompressor } from "../../../../../../src/mail-app/workerUtils/spamClassification/SparseVectorCompressor"
+import { SparseVectorCompressor } from "../../../../../../src/common/api/common/mail/spamClassificationUtils/SparseVectorCompressor"
 import { spamClassifierTokenizer } from "../../../../../../src/mail-app/workerUtils/spamClassification/SpamClassifier"
 import { HashingVectorizer } from "../../../../../../src/mail-app/workerUtils/spamClassification/HashingVectorizer"
 import { DATASET_FILE_PATH, readMailDataFromCSV } from "./SpamClassifierTest"
-import { SpamMailProcessor } from "../../../../../../src/mail-app/workerUtils/spamClassification/SpamMailProcessor"
+import { SpamMailProcessor } from "../../../../../../src/common/api/common/mail/spamClassificationUtils/SpamMailProcessor"
 
 o.spec("SparseVectorCompressorTest", () => {
 	o("sparse compress vectors", async () => {

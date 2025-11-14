@@ -12,8 +12,6 @@ import { LoginController } from "../../../common/api/main/LoginController.js"
 import { getMailHeaders } from "./MailUtils.js"
 import { MailModel } from "./MailModel"
 import { UnencryptedProcessInboxDatum } from "./ProcessInboxHandler"
-import { SpamMailProcessor } from "../../workerUtils/spamClassification/SpamMailProcessor"
-import { createSpamMailDatum } from "./SpamClassificationHandler"
 import { ClientClassifierType } from "../../../common/api/common/ClientClassifierType"
 
 assertMainOrNode()
@@ -57,7 +55,6 @@ export class InboxRuleHandler {
 		private readonly mailFacade: MailFacade,
 		private readonly logins: LoginController,
 		private readonly mailModel: MailModel,
-		private readonly spamMailProcessor: SpamMailProcessor = new SpamMailProcessor(),
 	) {}
 
 	/**
@@ -96,7 +93,7 @@ export class InboxRuleHandler {
 						mailId: mail._id,
 						targetMoveFolder: targetFolder._id,
 						classifierType: ClientClassifierType.CUSTOMER_INBOX_RULES,
-						vector: await this.spamMailProcessor.vectorizeAndCompress(createSpamMailDatum(mail, mailDetails)),
+						vector: await this.mailFacade.vectorizeAndCompressMails({ mail, mailDetails }),
 					}
 					return { targetFolder, processInboxDatum }
 				} else {

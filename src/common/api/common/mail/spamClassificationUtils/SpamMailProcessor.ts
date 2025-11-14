@@ -1,5 +1,5 @@
-import { HashingVectorizer } from "./HashingVectorizer"
-import { htmlToText } from "../../../common/api/common/utils/IndexUtils"
+import { HashingVectorizer } from "../../../../../mail-app/workerUtils/spamClassification/HashingVectorizer"
+import { htmlToText } from "../../utils/IndexUtils"
 import {
 	ML_BITCOIN_REGEX,
 	ML_BITCOIN_TOKEN,
@@ -18,9 +18,9 @@ import {
 	ML_URL_REGEX,
 	ML_URL_TOKEN,
 } from "./PreprocessPatterns"
-import { spamClassifierTokenizer } from "./SpamClassifier"
 import { SparseVectorCompressor } from "./SparseVectorCompressor"
-import { ProgrammingError } from "../../../common/api/common/error/ProgrammingError"
+import { ProgrammingError } from "../../error/ProgrammingError"
+import { tokenize } from "@tutao/tutanota-utils"
 
 export type PreprocessConfiguration = {
 	isPreprocessMails: boolean
@@ -34,6 +34,8 @@ export type PreprocessConfiguration = {
 	isReplaceSpecialCharacters: boolean
 	isRemoveSpaceBeforeNewLine: boolean
 }
+
+export const spamClassifierTokenizer = (text: PreprocessedMailContent): string[] => tokenize(text)
 
 export const DEFAULT_PREPROCESS_CONFIGURATION: PreprocessConfiguration = {
 	isPreprocessMails: true,

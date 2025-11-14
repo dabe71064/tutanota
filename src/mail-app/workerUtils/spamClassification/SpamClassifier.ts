@@ -4,6 +4,7 @@ import { SpamClassificationDataDealer, TrainingDataset } from "./SpamClassificat
 import { CacheStorage } from "../../../common/api/worker/rest/DefaultEntityRestCache"
 import {
 	dense,
+	enableProdMode,
 	fromMemory,
 	glorotUniform,
 	LayersModel,
@@ -14,11 +15,11 @@ import {
 	withSaveHandler,
 } from "./tensorflow-custom"
 import type { ModelArtifacts } from "@tensorflow/tfjs-core/dist/io/types"
-import { ModelFitArgs } from "@tensorflow/tfjs-layers"
-import { PreprocessedMailContent } from "./SpamMailProcessor"
-import { SparseVectorCompressor } from "./SparseVectorCompressor"
+import type { ModelFitArgs } from "@tensorflow/tfjs-layers"
+import type { Tensor } from "@tensorflow/tfjs-core"
+import { PreprocessedMailContent, SpamMailDatum, SpamMailProcessor } from "../../../common/api/common/mail/spamClassificationUtils/SpamMailProcessor"
+import { SparseVectorCompressor } from "../../../common/api/common/mail/spamClassificationUtils/SparseVectorCompressor"
 import { SpamDecision } from "../../../common/api/common/TutanotaConstants"
-import { enableProdMode, Tensor } from "@tensorflow/tfjs-core"
 
 assertWorkerOrNode()
 
@@ -36,8 +37,6 @@ export const DEFAULT_PREDICTION_THRESHOLD = 0.55
 const TRAINING_INTERVAL = 1000 * 60 * 10 // 10 minutes
 const FULL_RETRAINING_INTERVAL = 1000 * 60 * 60 * 24 * 7 // 1 week
 
-export const spamClassifierTokenizer = (text: PreprocessedMailContent): string[] => tokenize(text)
-
 export type Classifier = {
 	isEnabled: boolean
 	layersModel: LayersModel
@@ -49,12 +48,13 @@ export type Classifier = {
 export class SpamClassifier {
 	// Visible for testing
 	readonly classifiers: Map<Id, Classifier>
+	private readonly sparseVectorCompressor: SparseVectorCompressor = new SparseVectorCompressor()
+	private readonly spamMailProcessor: SpamMailProcessor = new SpamMailProcessor()
 
 	constructor(
 		private readonly cacheStorage: CacheStorage,
 		private readonly initializer: SpamClassificationDataDealer,
 		private readonly deterministic: boolean = false,
-		private readonly sparseVectorCompressor: SparseVectorCompressor = new SparseVectorCompressor(),
 	) {
 		// enable tensorflow production mode
 		enableProdMode()
@@ -391,6 +391,14 @@ export class SpamClassifier {
 			})
 			classifier.layersModel.save(saveInfo, undefined)
 		})
+	}
+
+	async vectorizeAndCompress(mailDatum: SpamMailDatum) {
+		return await this.spamMailProcessor.vectorizeAndCompress(mailDatum)
+	}
+
+	async vectorize(mailDatum: SpamMailDatum) {
+		return await this.spamMailProcessor.vectorize(mailDatum)
 	}
 
 	// visibleForTesting

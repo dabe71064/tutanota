@@ -1424,3 +1424,9 @@ export const DEFAULT_IS_SPAM = false
 export function getSpamConfidence(mail: Mail): number {
 	return Number(mail.clientSpamClassifierResult?.confidence ?? DEFAULT_IS_SPAM_CONFIDENCE)
 }
+/**
+ * We pick a max word frequency of 2^5 so that we can compress it together
+ * with the index (which is 2^11 =2048) into two bytes
+ */
+export const MAX_WORD_FREQUENCY = 31
+export const DEFAULT_VECTOR_MAX_LENGTH = 2048

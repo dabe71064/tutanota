@@ -13,12 +13,12 @@ import { LayersModel, tensor1d } from "../../../../../../src/mail-app/workerUtil
 import { createTestEntity } from "../../../../TestUtils"
 import { ClientSpamTrainingDatum, ClientSpamTrainingDatumTypeRef, MailTypeRef } from "../../../../../../src/common/api/entities/tutanota/TypeRefs"
 import { Sequential } from "@tensorflow/tfjs-layers"
-import { SparseVectorCompressor } from "../../../../../../src/mail-app/workerUtils/spamClassification/SparseVectorCompressor"
+import { SparseVectorCompressor } from "../../../../../../src/common/api/common/mail/spamClassificationUtils/SparseVectorCompressor"
 import {
 	DEFAULT_PREPROCESS_CONFIGURATION,
 	SpamMailDatum,
 	SpamMailProcessor,
-} from "../../../../../../src/mail-app/workerUtils/spamClassification/SpamMailProcessor"
+} from "../../../../../../src/common/api/common/mail/spamClassificationUtils/SpamMailProcessor"
 import { DEFAULT_IS_SPAM_CONFIDENCE, SpamDecision } from "../../../../../../src/common/api/common/TutanotaConstants"
 import { GENERATED_MIN_ID } from "../../../../../../src/common/api/common/utils/EntityUtils"
 

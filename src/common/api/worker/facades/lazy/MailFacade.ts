@@ -171,6 +171,10 @@ import { KeyVerificationMismatchError } from "../../../common/error/KeyVerificat
 import { VerifiedPublicEncryptionKey } from "./KeyVerificationFacade"
 import { UnencryptedProcessInboxDatum } from "../../../../../mail-app/mail/model/ProcessInboxHandler"
 import { UnencryptedPopulateClientSpamTrainingDatum } from "../../../../../mail-app/workerUtils/spamClassification/SpamClassificationDataDealer"
+import { MailWithMailDetails } from "../../../../../mail-app/workerUtils/index/BulkMailLoader"
+import { SpamMailProcessor } from "../../../common/mail/spamClassificationUtils/SpamMailProcessor"
+
+import { createSpamMailDatum } from "../../../common/mail/spamClassificationUtils/PreprocessPatterns"
 
 assertWorkerOrNode()
 type Attachments = ReadonlyArray<TutanotaFile | DataFile | FileReference>
@@ -208,6 +212,7 @@ export class MailFacade {
 	private phishingMarkers: Set<string> = new Set()
 	private deferredDraftId: IdTuple | null = null // the mail id of the draft that we are waiting for to be updated via websocket
 	private deferredDraftUpdate: Record<string, any> | null = null // this deferred promise is resolved as soon as the update of the draft is received
+	private spamMailProcessor: SpamMailProcessor = new SpamMailProcessor()
 
 	constructor(
 		private readonly userFacade: UserFacade,
@@ -1309,6 +1314,10 @@ export class MailFacade {
 				),
 			{ concurrency: 5 },
 		)
+	}
+
+	async vectorizeAndCompressMails(mailWithDetails: MailWithMailDetails) {
+		return this.spamMailProcessor.vectorizeAndCompress(createSpamMailDatum(mailWithDetails.mail, mailWithDetails.mailDetails))
 	}
 
 	/** Resolve conversation list ids to the IDs of mails in those conversations. */
