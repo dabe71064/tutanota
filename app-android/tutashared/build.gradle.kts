@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
 	// IMPORTANT: must be *before* other plugins or you will run into "duplicate sources" error
 	// https://github.com/mozilla/rust-android-gradle/issues/147#issuecomment-2134688017
@@ -25,7 +27,7 @@ android {
 		consumerProguardFiles("consumer-rules.pro")
 		// https://issuetracker.google.com/issues/181593646
 		ksp {
-			arg("room.schemaLocation", "$projectDir/schemas".toString())
+			arg("room.schemaLocation", "$projectDir/schemas")
 			arg("room.generateKotlin", "true")
 		}
 	}
@@ -65,15 +67,17 @@ android {
 		targetCompatibility = JavaVersion.VERSION_17
 	}
 
-	kotlinOptions {
-		jvmTarget = "17"
-	}
-
 	sourceSets {
 		this.getByName("debug").assets.srcDirs(files("$projectDir/schemas"))
 	}
 
 	ndkVersion = "28.2.13676358"
+}
+
+kotlin {
+	compilerOptions {
+		jvmTarget = JvmTarget.JVM_17
+	}
 }
 
 val tutanota3Root = layout.projectDirectory
@@ -82,25 +86,20 @@ val tutanota3Root = layout.projectDirectory
 val ftsCreatePath = tutanota3Root.dir("libs").dir("Signal-FTS5-Extension")
 
 fun getActiveBuildType(): String {
-	var buildType = "debug"
 	val taskNames = gradle.parent?.startParameter?.taskNames
 	if (!taskNames.isNullOrEmpty()) {
-		if (taskNames.size > 0) {
-			val targetTask = taskNames[0].lowercase()
-			if (targetTask.contains("release")) {
-				buildType = "release"
-			}
+		val targetTask = taskNames[0].lowercase()
+		if (targetTask.contains("release")) {
+			return "release"
 		}
 	}
-	return buildType
+	return "debug"
 }
 
 fun getABITargets(): List<String> {
 	val targetAbiPropertyValue = findProperty("targetABI") as String?
-	if (targetAbiPropertyValue == null) {
-		return listOf("arm", "arm64", "x86_64")
-	}
-	return targetAbiPropertyValue.orEmpty().split(",")
+		?: return listOf("arm", "arm64", "x86_64")
+	return targetAbiPropertyValue.split(",")
 }
 
 cargo {
@@ -114,7 +113,7 @@ cargo {
 	features {
 		defaultAnd(arrayOf("extension"))
 	}
-	exec = { spec, toolchain ->
+	exec = { spec, _ ->
 		spec.environment("RUSTFLAGS", "-C link-arg=-Wl,-z,max-page-size=16384")
 	}
 }
@@ -133,12 +132,6 @@ tasks.register("itest") {
 }
 
 dependencies {
-	val room_version = "2.8.0"
-	val lifecycle_version = "2.9.4"
-	val activity_version = "1.11.0"
-	val coroutines_version = "1.10.2"
-	val kotlin_version = "2.2.20"
-
 	implementation(libs.commons.io)
 	implementation(libs.tutasdk)
 
