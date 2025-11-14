@@ -5,7 +5,8 @@ plugins {
 	id("com.android.application")
 	id("org.jetbrains.kotlin.android")
 	id("kotlin-kapt")
-	id("org.jetbrains.kotlin.plugin.serialization") version "2.2.20"
+	alias(libs.plugins.kotlin.serialization)
+	// FIXME
 	id("org.jetbrains.kotlin.plugin.compose") version "2.2.20" // this version matches the Kotlin version
 	alias(libs.plugins.tutao.testconvention)
 }
