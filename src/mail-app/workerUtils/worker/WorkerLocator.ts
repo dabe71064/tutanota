@@ -16,11 +16,9 @@ import {
 	isAdminClient,
 	isAndroidApp,
 	isBrowser,
-	isDesktop,
 	isIOSApp,
 	isOfflineStorageAvailable,
 	isTest,
-	isWebClient,
 } from "../../../common/api/common/Env.js"
 import { Const } from "../../../common/api/common/TutanotaConstants.js"
 import type { BrowserData } from "../../../common/misc/ClientConstants.js"

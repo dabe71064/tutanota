@@ -57,7 +57,7 @@ export class EphemeralCacheStorage implements CacheStorage {
 		this.userId = userId
 	}
 
-	deinit() {
+	async deinit(): Promise<void> {
 		this.userId = null
 		this.entities.clear()
 		this.lists.clear()

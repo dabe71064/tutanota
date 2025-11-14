@@ -283,6 +283,7 @@ export class OfflineStorage implements CacheStorage {
 	async deinit() {
 		this.userId = null
 		this.databaseKey = null
+		this.timeRangeDate = null
 		await this.sqlCipherFacade.closeDb()
 	}
 

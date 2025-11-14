@@ -689,7 +689,7 @@ class MailLocator implements CommonLocator {
 				})
 	}
 
-	async loginViewModelFactory(): Promise<lazy<LoginViewModel>> {
+	loginViewModelFactory = lazyMemoized(async () => {
 		const { LoginViewModel } = await import("../common/login/LoginViewModel.js")
 		const credentialsRemovalHandler = await mailLocator.credentialsRemovalHandler()
 		const { MobileAppLock, NoOpAppLock } = await import("../common/login/AppLock.js")
@@ -713,7 +713,7 @@ class MailLocator implements CommonLocator {
 				appLock,
 			)
 		}
-	}
+	})
 
 	private getNativeInterface<T extends keyof NativeInterfaces>(name: T): NativeInterfaces[T] {
 		if (!this.nativeInterfaces) {
