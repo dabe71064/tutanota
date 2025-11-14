@@ -3237,6 +3237,7 @@ styles.registerStyle("main", () => {
 		},
 		".interactable-cell:hover": {
 			background: theme.surface_container,
+			cursor: "pointer",
 		},
 	}
 })

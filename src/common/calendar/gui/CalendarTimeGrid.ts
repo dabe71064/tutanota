@@ -480,7 +480,7 @@ export class CalendarTimeGrid implements ClassComponent<CalendarTimeGridAttribut
 
 	private renderCell(cellAttrs: CellAttrs): Child {
 		const showHoverEffect = cellAttrs.onCellPressed || cellAttrs.onCellContextMenuPressed
-		const classes = showHoverEffect ? "interactable-cell cursor-pointer after-as-border-bottom" : ""
+		const classes = showHoverEffect ? "interactable-cell after-as-border-bottom" : ""
 
 		return m(".z1", {
 			class: classes,

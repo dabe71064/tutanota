@@ -3,13 +3,12 @@ import { DateTime } from "../../../../libs/luxon"
 import { findAttendeeInAddresses, formatJSDate, isAllDayEvent, isSameExternalEvent } from "../../../common/api/common/utils/CommonCalendarUtils"
 import { ParsedIcalFileContentData } from "../../../calendar-app/calendar/view/CalendarInvites"
 import { CalendarEventsRepository } from "../../../common/calendar/date/CalendarEventsRepository"
-import { CalendarAttendeeStatus, CalendarMethod, SECOND_MS } from "../../../common/api/common/TutanotaConstants"
+import { CalendarAttendeeStatus, CalendarMethod, Keys, SECOND_MS, TabIndex } from "../../../common/api/common/TutanotaConstants"
 import m, { ChildArray, Children, ClassComponent, Vnode, VnodeDOM } from "mithril"
 import { base64ToBase64Url, clone, filterNull, getStartOfDay, isNotNull, isSameDay, partition, stringToBase64 } from "@tutao/tutanota-utils"
 import {
 	CalendarTimeGrid,
 	CalendarTimeGridAttributes,
-	getIntervalAsMinutes,
 	TIME_SCALE_BASE_VALUE,
 	TimeRange,
 	TimeScale,
@@ -36,6 +35,9 @@ import { ExpanderPanel } from "../../../common/gui/base/Expander.js"
 import { formatDateTime, formatTime } from "../../../common/misc/Formatter.js"
 import { EventWrapper } from "../../../calendar-app/calendar/view/CalendarViewModel.js"
 import { GENERATED_MIN_ID } from "../../../common/api/common/utils/EntityUtils"
+import { TimeColumn, TimeColumnAttrs } from "../../../common/calendar/gui/TimeColumn"
+import { AriaRole } from "../../../common/gui/AriaUtils"
+import { isKeyPressed } from "../../../common/misc/KeyManager"
 
 export type EventBannerImplAttrs = Omit<EventBannerAttrs, "iCalContents"> & {
 	iCalContents: ParsedIcalFileContentData
@@ -123,7 +125,7 @@ export class EventBannerImpl implements ClassComponent<EventBannerImplAttrs> {
 
 		const timeScale = this.getTimeScaleAccordingToEventDuration(shortestTimeFrame)
 
-		const timeInterval = getIntervalAsMinutes(timeScale)
+		const timeInterval = TIME_SCALE_BASE_VALUE / timeScale
 		const timeRangeStart = Time.fromDate(eventFocusBound).sub({ minutes: timeInterval })
 		const timeRangeStartEnd = Time.fromDate(eventFocusBound).add({ minutes: timeInterval })
 		const timeRange: TimeRange = {
@@ -166,7 +168,7 @@ export class EventBannerImpl implements ClassComponent<EventBannerImplAttrs> {
 					],
 				),
 				/* Invite Column */
-				m(".flex.flex-column.plr-vpad.pb.pt.justify-start", [
+				m(".flex.flex-column.plr-vpad.pb.pt.justify-start.overflow-x-hidden", [
 					m(".flex", [
 						m(Icon, {
 							icon: BootIcons.Calendar,
@@ -179,7 +181,7 @@ export class EventBannerImpl implements ClassComponent<EventBannerImplAttrs> {
 					]),
 					event.organizer?.address
 						? m(".flex.items-center.small.mt-s", [
-								m("span.b", lang.get("when_label")),
+								m("span.b", lang.getTranslation("when_label").text),
 								m("span.ml-xsm", formatEventTimes(getStartOfDay(event.startTime), event, "")),
 							])
 						: null,
@@ -206,19 +208,27 @@ export class EventBannerImpl implements ClassComponent<EventBannerImplAttrs> {
 											style: { fill: theme.on_surface },
 											size: IconSize.Medium,
 										}),
-										m("span.b.h5", lang.get("timeOverview_title")),
+										m("span.b.h5", lang.getTranslation("timeOverview_title").text),
 									]),
 									agenda
 										? m(".mb-s", [
 												m(
 													".flex.mt-hpad-small.fit-content",
-													{
-														class: agenda && agenda.conflictCount > 1 ? "nav-button" : undefined,
-														onclick: () =>
-															agenda && agenda.conflictCount > 1
-																? (this.displayConflictingAgenda = !this.displayConflictingAgenda)
-																: null,
-													},
+													agenda.conflictCount > 1
+														? {
+																class: "nav-button",
+																role: AriaRole.Button,
+																ariaExpanded: this.displayConflictingAgenda,
+																tabIndex: TabIndex.Default,
+																onclick: this.toggleConflictingAgenda,
+																onkeydown: (e: KeyboardEvent) => {
+																	if (isKeyPressed(e.key, Keys.SPACE, Keys.RETURN)) {
+																		this.toggleConflictingAgenda()
+																		e.preventDefault()
+																	}
+																},
+															}
+														: {},
 													[
 														m(Icon, {
 															icon: hasConflict ? Icons.AlertCircle : Icons.CheckCircleFilled,
@@ -257,20 +267,35 @@ export class EventBannerImpl implements ClassComponent<EventBannerImplAttrs> {
 										: null,
 								]),
 								agenda
-									? m(CalendarTimeGrid, {
-											events: this.filterOutOfRangeEvents(timeRange, events, eventFocusBound, timeInterval),
-											timeScale,
-											timeRange,
-											dates: [getStartOfDay(agenda.main.event.startTime)],
-											hasAnyConflict: hasConflict,
-											canReceiveFocus: true,
-										} satisfies CalendarTimeGridAttributes)
+									? m(".flex", [
+											m(TimeColumn, {
+												timeScale,
+												timeRange,
+												width: size.calendar_hour_width_mobile + size.spacing.core_16,
+												height: size.font_size_base + size.spacing.core_16 * 2,
+												hideLastBorder: true,
+											} satisfies TimeColumnAttrs),
+											m(
+												".full-width",
+												m(CalendarTimeGrid, {
+													events: this.filterOutOfRangeEvents(timeRange, events, eventFocusBound, timeInterval),
+													timeScale,
+													timeRange,
+													dates: [getStartOfDay(agenda.main.event.startTime)],
+													hasAnyConflict: hasConflict,
+													canReceiveFocus: false,
+												} satisfies CalendarTimeGridAttributes),
+											),
+										])
 									: m("", "ERROR: Could not load the agenda for this day."),
 							],
 						)
 					: null,
 			],
 		)
+	}
+	private toggleConflictingAgenda() {
+		this.displayConflictingAgenda = !this.displayConflictingAgenda
 	}
 
 	private conflictingAgenda(agenda: InviteAgenda, event: CalendarEvent): m.Children {
@@ -334,6 +359,7 @@ export class EventBannerImpl implements ClassComponent<EventBannerImplAttrs> {
 	}
 
 	private getTimeParts(referenceDate: Date, eventWrapper: EventWrapper): Array<string> {
+		// FIXME Again, wrapper from wrapper + event from event hahahahah
 		if (isAllDayEvent(eventWrapper.event)) {
 			return [lang.getTranslationText("allDay_label")]
 		}
@@ -379,7 +405,7 @@ export class EventBannerImpl implements ClassComponent<EventBannerImplAttrs> {
 			click: () => this.handleViewOnCalendarAction(agenda, event),
 			text: {
 				testId: "",
-				text: lang.get("viewOnCalendar_action"),
+				text: lang.getTranslation("viewOnCalendar_action").text,
 			} as Translation,
 		})
 
@@ -404,11 +430,11 @@ export class EventBannerImpl implements ClassComponent<EventBannerImplAttrs> {
 					]),
 				)
 			} else if (!needsAction) {
-				children.push(m(".align-self-start.start.small.mt-s.mb-xsm-15.lh", lang.get("alreadyReplied_msg")))
+				children.push(m(".align-self-start.start.small.mt-s.mb-xsm-15.lh", lang.getTranslation("alreadyReplied_msg").text))
 				children.push(viewOnCalendarButton)
 			}
 		} else if (method === CalendarMethod.REPLY) {
-			children.push(m(".align-self-start.start.small.mt-s.mb-xsm-15.lh", lang.get("eventNotificationUpdated_msg")))
+			children.push(m(".align-self-start.start.small.mt-s.mb-xsm-15.lh", lang.getTranslation("eventNotificationUpdated_msg").text))
 			children.push(viewOnCalendarButton)
 		} else {
 			return null
@@ -434,8 +460,8 @@ export class EventBannerImpl implements ClassComponent<EventBannerImplAttrs> {
 			},
 			maxLines: 2,
 			maxLength: 250,
-			ariaLabel: lang.get("addComment_label"),
-			placeholder: lang.get("addComment_label"),
+			ariaLabel: lang.getTranslation("addComment_label").text,
+			placeholder: lang.getTranslation("addComment_label").text,
 		} satisfies ExpandableTextAreaAttrs)
 	}
 
